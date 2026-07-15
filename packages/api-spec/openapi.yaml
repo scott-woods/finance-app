@@ -1,0 +1,95 @@
+openapi: 3.0.3
+info:
+  title: Finance App API
+  version: 0.1.0
+paths:
+  /accounts:
+    get:
+      operationId: listAccounts
+      responses:
+        '200':
+          description: List of accounts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Account'
+    post:
+      operationId: createAccount
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AccountInput'
+      responses:
+        '201':
+          description: Created account
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Account'
+  /accounts/{id}:
+    get:
+      operationId: getAccount
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: A single account
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Account'
+        '404':
+          description: Account not found
+
+components:
+  schemas:
+    AccountType:
+      type: string
+      enum:
+        - checking
+        - savings
+        - credit_card
+        - investment
+        - real_estate
+        - vehicle
+        - loan
+        - other_asset
+        - other_debt
+    AccountInput:
+      type: object
+      required:
+        - name
+        - type
+        - is_asset
+      properties:
+        name:
+          type: string
+        type:
+          $ref: '#/components/schemas/AccountType'
+        is_asset:
+          type: boolean
+        credit_limit:
+          type: number
+          format: double
+          nullable: true
+    Account:
+      allOf:
+        - $ref: '#/components/schemas/AccountInput'
+        - type: object
+          required:
+            - id
+            - created_at
+          properties:
+            id:
+              type: integer
+            created_at:
+              type: string
+              format: date-time
