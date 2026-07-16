@@ -1,0 +1,9 @@
+{
+  "name": "@finance-app/api-spec",
+  "version": "0.0.0",
+  "private": true,
+  "main": "./generated/ts-client/types.ts",
+  "devDependencies": {
+    "openapi-typescript": "^7.13.0"
+  }
+}
