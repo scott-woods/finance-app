@@ -64,6 +64,43 @@ func (s *Server) CreateAccount(ctx context.Context, request CreateAccountRequest
 	return CreateAccount201JSONResponse(result), nil
 }
 
+func (s *Server) UpdateAccount(ctx context.Context, request UpdateAccountRequestObject) (UpdateAccountResponseObject, error) {
+	input := request.Body
+
+	update := s.DB.Account.UpdateOneID(request.Id).
+		SetName(input.Name).
+		SetType(account.Type(input.Type)).
+		SetIsAsset(input.IsAsset)
+
+	if input.CreditLimit != nil {
+		update = update.SetCreditLimit(*input.CreditLimit)
+	} else {
+		update = update.ClearCreditLimit()
+	}
+
+	updated, err := update.Save(ctx)
+	if ent.IsNotFound(err) {
+		return UpdateAccount404Response{}, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return UpdateAccount200JSONResponse(toAPIAccount(updated)), nil
+}
+
+func (s *Server) DeleteAccount(ctx context.Context, request DeleteAccountRequestObject) (DeleteAccountResponseObject, error) {
+	err := s.DB.Account.DeleteOneID(request.Id).Exec(ctx)
+	if ent.IsNotFound(err) {
+		return DeleteAccount404Response{}, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return DeleteAccount204Response{}, nil
+}
+
 // toAPIAccount maps an Ent entity to the API's public representation —
 // deliberately not exposing internal fields like source or external_account_id.
 func toAPIAccount(a *ent.Account) Account {
