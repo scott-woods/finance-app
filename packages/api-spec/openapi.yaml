@@ -84,9 +84,66 @@ paths:
           description: Account deleted
         '404':
           description: Account not found
+  /accounts/{id}/snapshots:
+    get:
+      operationId: listAccountSnapshots
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: List of snapshots for this account
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AccountSnapshot'
+    post:
+      operationId: createAccountSnapshot
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AccountSnapshotInput'
+      responses:
+        '201':
+          description: Created snapshot
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountSnapshot'
+        '404':
+          description: Account not found
+  /net-worth/summary:
+    get:
+      operationId: getNetWorthSummary
+      responses:
+        '200':
+          description: Net worth summary grouped by account type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NetWorthSummary'
 
 components:
   schemas:
+    AccountStatus:
+      type: string
+      enum:
+        - active
+        - closed
+        - hidden
     AccountType:
       type: string
       enum:
@@ -116,6 +173,9 @@ components:
           type: number
           format: double
           nullable: true
+        status:
+          $ref: '#/components/schemas/AccountStatus'
+          default: active
     Account:
       allOf:
         - $ref: '#/components/schemas/AccountInput'
@@ -129,3 +189,94 @@ components:
             created_at:
               type: string
               format: date-time
+            closed_at:
+              type: string
+              format: date-time
+              nullable: true
+    AccountSnapshotInput:
+      type: object
+      required:
+        - balance
+        - as_of_date
+      properties:
+        balance:
+          type: number
+          format: double
+        as_of_date:
+          type: string
+          format: date-time
+    AccountSnapshot:
+      allOf:
+        - $ref: '#/components/schemas/AccountSnapshotInput'
+        - type: object
+          required:
+            - id
+            - account_id
+          properties:
+            id:
+              type: integer
+            account_id:
+              type: integer
+    AccountBalance:
+      type: object
+      required:
+        - id
+        - name
+        - type
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        type:
+          $ref: '#/components/schemas/AccountType'
+        balance:
+          type: number
+          format: double
+          nullable: true
+        as_of_date:
+          type: string
+          format: date-time
+          nullable: true
+    AccountTypeGroup:
+      type: object
+      required:
+        - type
+        - subtotal
+        - accounts
+      properties:
+        type:
+          $ref: '#/components/schemas/AccountType'
+        subtotal:
+          type: number
+          format: double
+        accounts:
+          type: array
+          items:
+            $ref: '#/components/schemas/AccountBalance'
+    NetWorthSummary:
+      type: object
+      required:
+        - net_worth
+        - total_assets
+        - total_debts
+        - asset_groups
+        - debt_groups
+      properties:
+        net_worth:
+          type: number
+          format: double
+        total_assets:
+          type: number
+          format: double
+        total_debts:
+          type: number
+          format: double
+        asset_groups:
+          type: array
+          items:
+            $ref: '#/components/schemas/AccountTypeGroup'
+        debt_groups:
+          type: array
+          items:
+            $ref: '#/components/schemas/AccountTypeGroup'

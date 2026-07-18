@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
@@ -130,6 +131,40 @@ func (_u *AccountUpdate) AddCreditLimit(v float64) *AccountUpdate {
 // ClearCreditLimit clears the value of the "credit_limit" field.
 func (_u *AccountUpdate) ClearCreditLimit() *AccountUpdate {
 	_u.mutation.ClearCreditLimit()
+	return _u
+}
+
+// SetStatus sets the "status" field.
+func (_u *AccountUpdate) SetStatus(v account.Status) *AccountUpdate {
+	_u.mutation.SetStatus(v)
+	return _u
+}
+
+// SetNillableStatus sets the "status" field if the given value is not nil.
+func (_u *AccountUpdate) SetNillableStatus(v *account.Status) *AccountUpdate {
+	if v != nil {
+		_u.SetStatus(*v)
+	}
+	return _u
+}
+
+// SetClosedAt sets the "closed_at" field.
+func (_u *AccountUpdate) SetClosedAt(v time.Time) *AccountUpdate {
+	_u.mutation.SetClosedAt(v)
+	return _u
+}
+
+// SetNillableClosedAt sets the "closed_at" field if the given value is not nil.
+func (_u *AccountUpdate) SetNillableClosedAt(v *time.Time) *AccountUpdate {
+	if v != nil {
+		_u.SetClosedAt(*v)
+	}
+	return _u
+}
+
+// ClearClosedAt clears the value of the "closed_at" field.
+func (_u *AccountUpdate) ClearClosedAt() *AccountUpdate {
+	_u.mutation.ClearClosedAt()
 	return _u
 }
 
@@ -290,6 +325,11 @@ func (_u *AccountUpdate) check() error {
 			return &ValidationError{Name: "source", err: fmt.Errorf(`ent: validator failed for field "Account.source": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.Status(); ok {
+		if err := account.StatusValidator(v); err != nil {
+			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "Account.status": %w`, err)}
+		}
+	}
 	return nil
 }
 
@@ -331,6 +371,15 @@ func (_u *AccountUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if _u.mutation.CreditLimitCleared() {
 		_spec.ClearField(account.FieldCreditLimit, field.TypeFloat64)
+	}
+	if value, ok := _u.mutation.Status(); ok {
+		_spec.SetField(account.FieldStatus, field.TypeEnum, value)
+	}
+	if value, ok := _u.mutation.ClosedAt(); ok {
+		_spec.SetField(account.FieldClosedAt, field.TypeTime, value)
+	}
+	if _u.mutation.ClosedAtCleared() {
+		_spec.ClearField(account.FieldClosedAt, field.TypeTime)
 	}
 	if _u.mutation.SnapshotsCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -590,6 +639,40 @@ func (_u *AccountUpdateOne) ClearCreditLimit() *AccountUpdateOne {
 	return _u
 }
 
+// SetStatus sets the "status" field.
+func (_u *AccountUpdateOne) SetStatus(v account.Status) *AccountUpdateOne {
+	_u.mutation.SetStatus(v)
+	return _u
+}
+
+// SetNillableStatus sets the "status" field if the given value is not nil.
+func (_u *AccountUpdateOne) SetNillableStatus(v *account.Status) *AccountUpdateOne {
+	if v != nil {
+		_u.SetStatus(*v)
+	}
+	return _u
+}
+
+// SetClosedAt sets the "closed_at" field.
+func (_u *AccountUpdateOne) SetClosedAt(v time.Time) *AccountUpdateOne {
+	_u.mutation.SetClosedAt(v)
+	return _u
+}
+
+// SetNillableClosedAt sets the "closed_at" field if the given value is not nil.
+func (_u *AccountUpdateOne) SetNillableClosedAt(v *time.Time) *AccountUpdateOne {
+	if v != nil {
+		_u.SetClosedAt(*v)
+	}
+	return _u
+}
+
+// ClearClosedAt clears the value of the "closed_at" field.
+func (_u *AccountUpdateOne) ClearClosedAt() *AccountUpdateOne {
+	_u.mutation.ClearClosedAt()
+	return _u
+}
+
 // AddSnapshotIDs adds the "snapshots" edge to the AccountSnapshot entity by IDs.
 func (_u *AccountUpdateOne) AddSnapshotIDs(ids ...int) *AccountUpdateOne {
 	_u.mutation.AddSnapshotIDs(ids...)
@@ -760,6 +843,11 @@ func (_u *AccountUpdateOne) check() error {
 			return &ValidationError{Name: "source", err: fmt.Errorf(`ent: validator failed for field "Account.source": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.Status(); ok {
+		if err := account.StatusValidator(v); err != nil {
+			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "Account.status": %w`, err)}
+		}
+	}
 	return nil
 }
 
@@ -818,6 +906,15 @@ func (_u *AccountUpdateOne) sqlSave(ctx context.Context) (_node *Account, err er
 	}
 	if _u.mutation.CreditLimitCleared() {
 		_spec.ClearField(account.FieldCreditLimit, field.TypeFloat64)
+	}
+	if value, ok := _u.mutation.Status(); ok {
+		_spec.SetField(account.FieldStatus, field.TypeEnum, value)
+	}
+	if value, ok := _u.mutation.ClosedAt(); ok {
+		_spec.SetField(account.FieldClosedAt, field.TypeTime, value)
+	}
+	if _u.mutation.ClosedAtCleared() {
+		_spec.ClearField(account.FieldClosedAt, field.TypeTime)
 	}
 	if _u.mutation.SnapshotsCleared() {
 		edge := &sqlgraph.EdgeSpec{

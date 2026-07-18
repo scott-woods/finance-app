@@ -2,44 +2,17 @@
 
 import { useAuth } from '@clerk/nextjs'
 import { useEffect, useState, useCallback } from 'react'
+import Link from 'next/link'
 import { createApiClient } from '@/lib/api'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-  SheetFooter,
-  SheetClose,
-} from '@/components/ui/sheet'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogTrigger,
-  DialogClose,
-} from '@/components/ui/dialog'
+import { ACCOUNT_TYPE_ICONS, ACCOUNT_TYPE_LABELS } from '@/lib/account-icons'
 import type { components } from '@finance-app/api-spec'
+import { AccountForm } from './account-form'
 
 type Account = components['schemas']['Account']
 type AccountType = components['schemas']['AccountType']
 
-const ACCOUNT_TYPES: AccountType[] = [
-  'checking',
-  'savings',
-  'credit_card',
-  'investment',
-  'real_estate',
-  'vehicle',
-  'loan',
-  'other_asset',
-  'other_debt',
-]
+const ASSET_TYPES: AccountType[] = ['checking', 'savings', 'investment', 'real_estate', 'vehicle', 'other_asset']
+const DEBT_TYPES: AccountType[] = ['credit_card', 'loan', 'other_debt']
 
 export default function AccountsPage() {
   const { getToken } = useAuth()
@@ -58,191 +31,94 @@ export default function AccountsPage() {
     refresh()
   }, [refresh])
 
-  async function handleDelete(id: number) {
-    const token = await getToken()
-    const client = createApiClient(token)
-    await client.DELETE('/accounts/{id}', { params: { path: { id } } })
-    refresh()
-  }
+  if (loading) return <p className="text-text-muted">Loading...</p>
+
+  const active = accounts.filter((a) => (a.status ?? 'active') === 'active')
+  const assets = active.filter((a) => a.is_asset)
+  const debts = active.filter((a) => !a.is_asset)
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="font-display text-2xl text-text-primary">Accounts</h1>
-        <AccountForm mode="create" onSaved={refresh} />
+    <div className="flex flex-col gap-6">
+      <div className="bg-card border border-border rounded-xl p-6">
+        <h1 className="font-display text-3xl text-text-primary">Accounts</h1>
+        <p className="text-text-muted mt-1">
+          Everything you own and everything you owe, in one place.
+        </p>
       </div>
 
-      {loading ? (
-        <p className="text-text-muted">Loading...</p>
-      ) : accounts.length === 0 ? (
-        <p className="text-text-muted">No accounts yet — add your first one above.</p>
+      <div className="grid grid-cols-2 gap-6">
+        <AccountSection title="Assets" accounts={assets} allowedTypes={ASSET_TYPES} isAsset={true} onSaved={refresh} />
+        <AccountSection title="Debts" accounts={debts} allowedTypes={DEBT_TYPES} isAsset={false} onSaved={refresh} />
+      </div>
+    </div>
+  )
+}
+
+function AccountSection({
+  title,
+  accounts,
+  allowedTypes,
+  isAsset,
+  onSaved,
+}: {
+  title: string
+  accounts: Account[]
+  allowedTypes: AccountType[]
+  isAsset: boolean
+  onSaved: () => void
+}) {
+  return (
+    <div className="bg-card border border-border rounded-xl p-5">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-text-primary font-xl font-medium">{title}</h2>
+        <AccountForm mode="create" allowedTypes={allowedTypes} isAsset={isAsset} onSaved={onSaved} />
+      </div>
+      {accounts.length === 0 ? (
+        <p className="text-text-muted text-sm">None yet.</p>
       ) : (
-        <div className="border border-border rounded-lg divide-y divide-border">
-          {accounts.map((account) => (
-            <div
-              key={account.id}
-              className="flex items-center justify-between px-4 py-3"
-            >
-              <div>
-                <p className="text-text-primary">{account.name}</p>
-                <p className="text-sm text-text-muted">
-                  {account.type} · {account.is_asset ? 'Asset' : 'Debt'}
-                  {account.credit_limit != null &&
-                    ` · Limit $${account.credit_limit.toLocaleString()}`}
-                </p>
-              </div>
-              <div className="flex gap-2">
-                <AccountForm mode="edit" account={account} onSaved={refresh} />
-                <DeleteAccountDialog
-                  account={account}
-                  onConfirm={() => handleDelete(account.id)}
-                />
-              </div>
-            </div>
-          ))}
+        <div className="grid grid-cols-2 gap-3">
+          {accounts.map((account) => {
+            const Icon = ACCOUNT_TYPE_ICONS[account.type]
+            return (
+              <Link
+                key={account.id}
+                href={`/accounts/${account.id}`}
+                className="flex items-center gap-3 bg-background/60 border border-border rounded-lg p-3 hover:border-accent/50 transition-colors"
+              >
+                <div className="shrink-0 bg-accent/15 text-accent rounded-full p-2">
+                  <Icon size={18} />
+                </div>
+                <div className="min-w-0">
+                    <p className="text-text-primary text-base font-medium truncate">{account.name}</p>
+                    <p className="text-sm text-text-muted">{ACCOUNT_TYPE_LABELS[account.type]}</p>
+                </div>
+              </Link>
+            )
+          })}
         </div>
       )}
     </div>
   )
 }
 
-function AccountForm({
-  mode,
-  account,
-  onSaved,
-}: {
-  mode: 'create' | 'edit'
-  account?: Account
-  onSaved: () => void
-}) {
-  const { getToken } = useAuth()
-  const [open, setOpen] = useState(false)
-  const [name, setName] = useState(account?.name ?? '')
-  const [type, setType] = useState<AccountType>(account?.type ?? 'checking')
-  const [isAsset, setIsAsset] = useState(account?.is_asset ?? true)
-  const [creditLimit, setCreditLimit] = useState(
-    account?.credit_limit?.toString() ?? ''
-  )
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    const token = await getToken()
-    const client = createApiClient(token)
-
-    const body = {
-      name,
-      type,
-      is_asset: isAsset,
-      credit_limit: creditLimit ? parseFloat(creditLimit) : null,
-    }
-
-    if (mode === 'create') {
-      await client.POST('/accounts', { body })
-    } else if (account) {
-      await client.PUT('/accounts/{id}', {
-        params: { path: { id: account.id } },
-        body,
-      })
-    }
-
-    setOpen(false)
-    onSaved()
-  }
-
+function CollapsedSection({ title, accounts }: { title: string; accounts: Account[] }) {
   return (
-    <Sheet open={open} onOpenChange={setOpen}>
-        <SheetTrigger render={<Button variant={mode === 'create' ? 'default' : 'outline'} size="sm" />}>
-            {mode === 'create' ? 'Add Account' : 'Edit'}
-        </SheetTrigger>
-      <SheetContent>
-        <form onSubmit={handleSubmit} className="flex flex-col h-full">
-          <SheetHeader>
-            <SheetTitle>{mode === 'create' ? 'Add Account' : 'Edit Account'}</SheetTitle>
-          </SheetHeader>
-          <div className="flex flex-col gap-4 px-4 flex-1">
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="name">Name</Label>
-              <Input
-                id="name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-              />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="type">Type</Label>
-              <select
-                id="type"
-                value={type}
-                onChange={(e) => setType(e.target.value as AccountType)}
-                className="border border-border bg-card rounded-md px-3 py-2 text-sm"
-              >
-                {ACCOUNT_TYPES.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="flex items-center gap-2">
-              <input
-                id="isAsset"
-                type="checkbox"
-                checked={isAsset}
-                onChange={(e) => setIsAsset(e.target.checked)}
-              />
-              <Label htmlFor="isAsset">This is an asset (unchecked = debt)</Label>
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="creditLimit">Credit limit (optional)</Label>
-              <Input
-                id="creditLimit"
-                type="number"
-                value={creditLimit}
-                onChange={(e) => setCreditLimit(e.target.value)}
-              />
-            </div>
-          </div>
-          <SheetFooter>
-            <Button type="submit">Save</Button>
-            <SheetClose render={<Button type="button" variant="outline" />}>
-                Cancel
-            </SheetClose>
-          </SheetFooter>
-        </form>
-      </SheetContent>
-    </Sheet>
-  )
-}
-
-function DeleteAccountDialog({
-  account,
-  onConfirm,
-}: {
-  account: Account
-  onConfirm: () => void
-}) {
-  return (
-    <Dialog>
-      <DialogTrigger render={<Button variant="outline" size="sm" className="text-negative" />}>
-        Delete
-      </DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Delete {account.name}?</DialogTitle>
-        </DialogHeader>
-        <p className="text-text-muted text-sm">
-          This can't be undone. Any transactions or snapshots linked to this account will be affected.
-        </p>
-        <DialogFooter>
-          <DialogClose render={<Button variant="outline" />}>
-            Cancel
-          </DialogClose>
-          <Button variant="destructive" onClick={onConfirm}>
-            Delete
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    <div className="border border-border rounded-lg p-4">
+      <h2 className="text-text-muted font-medium mb-3">
+        {title} ({accounts.length})
+      </h2>
+      <div className="flex flex-col divide-y divide-border">
+        {accounts.map((account) => (
+          <Link
+            key={account.id}
+            href={`/accounts/${account.id}`}
+            className="flex items-center justify-between py-2 text-text-muted hover:text-text-primary transition-colors"
+          >
+            <span>{account.name}</span>
+            <span className="text-sm">{account.type}</span>
+          </Link>
+        ))}
+      </div>
+    </div>
   )
 }

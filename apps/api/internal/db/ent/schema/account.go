@@ -43,6 +43,12 @@ func (Account) Fields() []ent.Field {
 		field.Time("created_at").
 			Default(time.Now).
 			Immutable(),
+		field.Enum("status").
+			Values("active", "closed", "hidden").
+			Default("active"),
+		field.Time("closed_at").
+			Optional().
+			Nillable(),
 	}
 }
 

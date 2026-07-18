@@ -1,0 +1,64 @@
+version: '3'
+
+tasks:
+  api:generate:
+    desc: Regenerate the Go server interface from the OpenAPI spec
+    dir: apps/api/internal/api
+    cmds:
+      - go run -mod=mod github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen --config=oapi-codegen-config.yaml ../../../../packages/api-spec/openapi.yaml
+
+  api:build:
+    desc: Regenerate and build the Go API
+    dir: apps/api
+    cmds:
+      - task: api:generate
+      - go build ./...
+
+  api:run:
+    desc: Run the API server
+    dir: apps/api
+    cmds:
+      - go run ./cmd/api
+
+  api:dev:
+    desc: Regenerate, build, and run the API in one shot
+    cmds:
+      - task: api:build
+      - task: api:run
+
+  api:migrate:
+    desc: Run the schema migration
+    dir: apps/api
+    cmds:
+      - go run ./cmd/migrate
+
+  web:generate:
+    desc: Regenerate TypeScript types from the OpenAPI spec
+    dir: packages/api-spec
+    cmds:
+      - npx openapi-typescript openapi.yaml -o generated/ts-client/types.ts
+
+  web:dev:
+    desc: Regenerate types and start the Next.js dev server
+    cmds:
+      - task: web:generate
+      - task: web:dev-run
+
+  web:dev-run:
+    dir: apps/web
+    internal: true
+    cmds:
+      - npm run dev
+
+  generate:
+    desc: Regenerate both Go and TypeScript from the spec
+    cmds:
+      - task: api:generate
+      - task: web:generate
+      
+  auth:token:
+    desc: Mint a fresh long-lived Clerk test token and copy it to the clipboard
+    dir: apps/api
+    cmds:
+      - go run ./cmd/gettoken | clip
+      - echo "Token copied to clipboard"

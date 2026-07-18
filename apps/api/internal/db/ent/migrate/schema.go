@@ -18,6 +18,8 @@ var (
 		{Name: "external_account_id", Type: field.TypeString, Nullable: true},
 		{Name: "credit_limit", Type: field.TypeFloat64, Nullable: true},
 		{Name: "created_at", Type: field.TypeTime},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"active", "closed", "hidden"}, Default: "active"},
+		{Name: "closed_at", Type: field.TypeTime, Nullable: true},
 	}
 	// AccountsTable holds the schema information for the "accounts" table.
 	AccountsTable = &schema.Table{

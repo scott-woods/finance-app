@@ -29,6 +29,10 @@ const (
 	FieldCreditLimit = "credit_limit"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
 	FieldCreatedAt = "created_at"
+	// FieldStatus holds the string denoting the status field in the database.
+	FieldStatus = "status"
+	// FieldClosedAt holds the string denoting the closed_at field in the database.
+	FieldClosedAt = "closed_at"
 	// EdgeSnapshots holds the string denoting the snapshots edge name in mutations.
 	EdgeSnapshots = "snapshots"
 	// EdgeTransactions holds the string denoting the transactions edge name in mutations.
@@ -70,6 +74,8 @@ var Columns = []string{
 	FieldExternalAccountID,
 	FieldCreditLimit,
 	FieldCreatedAt,
+	FieldStatus,
+	FieldClosedAt,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -145,6 +151,33 @@ func SourceValidator(s Source) error {
 	}
 }
 
+// Status defines the type for the "status" enum field.
+type Status string
+
+// StatusActive is the default value of the Status enum.
+const DefaultStatus = StatusActive
+
+// Status values.
+const (
+	StatusActive Status = "active"
+	StatusClosed Status = "closed"
+	StatusHidden Status = "hidden"
+)
+
+func (s Status) String() string {
+	return string(s)
+}
+
+// StatusValidator is a validator for the "status" field enum values. It is called by the builders before save.
+func StatusValidator(s Status) error {
+	switch s {
+	case StatusActive, StatusClosed, StatusHidden:
+		return nil
+	default:
+		return fmt.Errorf("account: invalid enum value for status field: %q", s)
+	}
+}
+
 // OrderOption defines the ordering options for the Account queries.
 type OrderOption func(*sql.Selector)
 
@@ -186,6 +219,16 @@ func ByCreditLimit(opts ...sql.OrderTermOption) OrderOption {
 // ByCreatedAt orders the results by the created_at field.
 func ByCreatedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCreatedAt, opts...).ToFunc()
+}
+
+// ByStatus orders the results by the status field.
+func ByStatus(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldStatus, opts...).ToFunc()
+}
+
+// ByClosedAt orders the results by the closed_at field.
+func ByClosedAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldClosedAt, opts...).ToFunc()
 }
 
 // BySnapshotsCount orders the results by snapshots count.

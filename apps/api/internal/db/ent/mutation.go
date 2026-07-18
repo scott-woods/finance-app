@@ -51,6 +51,8 @@ type AccountMutation struct {
 	credit_limit           *float64
 	addcredit_limit        *float64
 	created_at             *time.Time
+	status                 *account.Status
+	closed_at              *time.Time
 	clearedFields          map[string]struct{}
 	snapshots              map[int]struct{}
 	removedsnapshots       map[int]struct{}
@@ -463,6 +465,91 @@ func (m *AccountMutation) ResetCreatedAt() {
 	m.created_at = nil
 }
 
+// SetStatus sets the "status" field.
+func (m *AccountMutation) SetStatus(a account.Status) {
+	m.status = &a
+}
+
+// Status returns the value of the "status" field in the mutation.
+func (m *AccountMutation) Status() (r account.Status, exists bool) {
+	v := m.status
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldStatus returns the old "status" field's value of the Account entity.
+// If the Account object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AccountMutation) OldStatus(ctx context.Context) (v account.Status, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldStatus is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldStatus requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldStatus: %w", err)
+	}
+	return oldValue.Status, nil
+}
+
+// ResetStatus resets all changes to the "status" field.
+func (m *AccountMutation) ResetStatus() {
+	m.status = nil
+}
+
+// SetClosedAt sets the "closed_at" field.
+func (m *AccountMutation) SetClosedAt(t time.Time) {
+	m.closed_at = &t
+}
+
+// ClosedAt returns the value of the "closed_at" field in the mutation.
+func (m *AccountMutation) ClosedAt() (r time.Time, exists bool) {
+	v := m.closed_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldClosedAt returns the old "closed_at" field's value of the Account entity.
+// If the Account object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AccountMutation) OldClosedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldClosedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldClosedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldClosedAt: %w", err)
+	}
+	return oldValue.ClosedAt, nil
+}
+
+// ClearClosedAt clears the value of the "closed_at" field.
+func (m *AccountMutation) ClearClosedAt() {
+	m.closed_at = nil
+	m.clearedFields[account.FieldClosedAt] = struct{}{}
+}
+
+// ClosedAtCleared returns if the "closed_at" field was cleared in this mutation.
+func (m *AccountMutation) ClosedAtCleared() bool {
+	_, ok := m.clearedFields[account.FieldClosedAt]
+	return ok
+}
+
+// ResetClosedAt resets all changes to the "closed_at" field.
+func (m *AccountMutation) ResetClosedAt() {
+	m.closed_at = nil
+	delete(m.clearedFields, account.FieldClosedAt)
+}
+
 // AddSnapshotIDs adds the "snapshots" edge to the AccountSnapshot entity by ids.
 func (m *AccountMutation) AddSnapshotIDs(ids ...int) {
 	if m.snapshots == nil {
@@ -659,7 +746,7 @@ func (m *AccountMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *AccountMutation) Fields() []string {
-	fields := make([]string, 0, 7)
+	fields := make([]string, 0, 9)
 	if m.name != nil {
 		fields = append(fields, account.FieldName)
 	}
@@ -680,6 +767,12 @@ func (m *AccountMutation) Fields() []string {
 	}
 	if m.created_at != nil {
 		fields = append(fields, account.FieldCreatedAt)
+	}
+	if m.status != nil {
+		fields = append(fields, account.FieldStatus)
+	}
+	if m.closed_at != nil {
+		fields = append(fields, account.FieldClosedAt)
 	}
 	return fields
 }
@@ -703,6 +796,10 @@ func (m *AccountMutation) Field(name string) (ent.Value, bool) {
 		return m.CreditLimit()
 	case account.FieldCreatedAt:
 		return m.CreatedAt()
+	case account.FieldStatus:
+		return m.Status()
+	case account.FieldClosedAt:
+		return m.ClosedAt()
 	}
 	return nil, false
 }
@@ -726,6 +823,10 @@ func (m *AccountMutation) OldField(ctx context.Context, name string) (ent.Value,
 		return m.OldCreditLimit(ctx)
 	case account.FieldCreatedAt:
 		return m.OldCreatedAt(ctx)
+	case account.FieldStatus:
+		return m.OldStatus(ctx)
+	case account.FieldClosedAt:
+		return m.OldClosedAt(ctx)
 	}
 	return nil, fmt.Errorf("unknown Account field %s", name)
 }
@@ -784,6 +885,20 @@ func (m *AccountMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetCreatedAt(v)
 		return nil
+	case account.FieldStatus:
+		v, ok := value.(account.Status)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetStatus(v)
+		return nil
+	case account.FieldClosedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetClosedAt(v)
+		return nil
 	}
 	return fmt.Errorf("unknown Account field %s", name)
 }
@@ -835,6 +950,9 @@ func (m *AccountMutation) ClearedFields() []string {
 	if m.FieldCleared(account.FieldCreditLimit) {
 		fields = append(fields, account.FieldCreditLimit)
 	}
+	if m.FieldCleared(account.FieldClosedAt) {
+		fields = append(fields, account.FieldClosedAt)
+	}
 	return fields
 }
 
@@ -854,6 +972,9 @@ func (m *AccountMutation) ClearField(name string) error {
 		return nil
 	case account.FieldCreditLimit:
 		m.ClearCreditLimit()
+		return nil
+	case account.FieldClosedAt:
+		m.ClearClosedAt()
 		return nil
 	}
 	return fmt.Errorf("unknown Account nullable field %s", name)
@@ -883,6 +1004,12 @@ func (m *AccountMutation) ResetField(name string) error {
 		return nil
 	case account.FieldCreatedAt:
 		m.ResetCreatedAt()
+		return nil
+	case account.FieldStatus:
+		m.ResetStatus()
+		return nil
+	case account.FieldClosedAt:
+		m.ResetClosedAt()
 		return nil
 	}
 	return fmt.Errorf("unknown Account field %s", name)

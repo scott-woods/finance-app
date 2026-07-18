@@ -16,6 +16,27 @@ import (
 	"github.com/oapi-codegen/runtime"
 )
 
+// Defines values for AccountStatus.
+const (
+	Active AccountStatus = "active"
+	Closed AccountStatus = "closed"
+	Hidden AccountStatus = "hidden"
+)
+
+// Valid indicates whether the value is a known member of the AccountStatus enum.
+func (e AccountStatus) Valid() bool {
+	switch e {
+	case Active:
+		return true
+	case Closed:
+		return true
+	case Hidden:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for AccountType.
 const (
 	Checking   AccountType = "checking"
@@ -57,30 +78,78 @@ func (e AccountType) Valid() bool {
 
 // Account defines model for Account.
 type Account struct {
-	CreatedAt   time.Time   `json:"created_at"`
-	CreditLimit *float64    `json:"credit_limit,omitempty"`
-	Id          int         `json:"id"`
-	IsAsset     bool        `json:"is_asset"`
-	Name        string      `json:"name"`
-	Type        AccountType `json:"type"`
+	ClosedAt    *time.Time     `json:"closed_at,omitempty"`
+	CreatedAt   time.Time      `json:"created_at"`
+	CreditLimit *float64       `json:"credit_limit,omitempty"`
+	Id          int            `json:"id"`
+	IsAsset     bool           `json:"is_asset"`
+	Name        string         `json:"name"`
+	Status      *AccountStatus `json:"status,omitempty"`
+	Type        AccountType    `json:"type"`
+}
+
+// AccountBalance defines model for AccountBalance.
+type AccountBalance struct {
+	AsOfDate *time.Time  `json:"as_of_date,omitempty"`
+	Balance  *float64    `json:"balance,omitempty"`
+	Id       int         `json:"id"`
+	Name     string      `json:"name"`
+	Type     AccountType `json:"type"`
 }
 
 // AccountInput defines model for AccountInput.
 type AccountInput struct {
-	CreditLimit *float64    `json:"credit_limit,omitempty"`
-	IsAsset     bool        `json:"is_asset"`
-	Name        string      `json:"name"`
-	Type        AccountType `json:"type"`
+	CreditLimit *float64       `json:"credit_limit,omitempty"`
+	IsAsset     bool           `json:"is_asset"`
+	Name        string         `json:"name"`
+	Status      *AccountStatus `json:"status,omitempty"`
+	Type        AccountType    `json:"type"`
 }
+
+// AccountSnapshot defines model for AccountSnapshot.
+type AccountSnapshot struct {
+	AccountId int       `json:"account_id"`
+	AsOfDate  time.Time `json:"as_of_date"`
+	Balance   float64   `json:"balance"`
+	Id        int       `json:"id"`
+}
+
+// AccountSnapshotInput defines model for AccountSnapshotInput.
+type AccountSnapshotInput struct {
+	AsOfDate time.Time `json:"as_of_date"`
+	Balance  float64   `json:"balance"`
+}
+
+// AccountStatus defines model for AccountStatus.
+type AccountStatus string
 
 // AccountType defines model for AccountType.
 type AccountType string
+
+// AccountTypeGroup defines model for AccountTypeGroup.
+type AccountTypeGroup struct {
+	Accounts []AccountBalance `json:"accounts"`
+	Subtotal float64          `json:"subtotal"`
+	Type     AccountType      `json:"type"`
+}
+
+// NetWorthSummary defines model for NetWorthSummary.
+type NetWorthSummary struct {
+	AssetGroups []AccountTypeGroup `json:"asset_groups"`
+	DebtGroups  []AccountTypeGroup `json:"debt_groups"`
+	NetWorth    float64            `json:"net_worth"`
+	TotalAssets float64            `json:"total_assets"`
+	TotalDebts  float64            `json:"total_debts"`
+}
 
 // CreateAccountJSONRequestBody defines body for CreateAccount for application/json ContentType.
 type CreateAccountJSONRequestBody = AccountInput
 
 // UpdateAccountJSONRequestBody defines body for UpdateAccount for application/json ContentType.
 type UpdateAccountJSONRequestBody = AccountInput
+
+// CreateAccountSnapshotJSONRequestBody defines body for CreateAccountSnapshot for application/json ContentType.
+type CreateAccountSnapshotJSONRequestBody = AccountSnapshotInput
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
@@ -99,6 +168,15 @@ type ServerInterface interface {
 
 	// (PUT /accounts/{id})
 	UpdateAccount(w http.ResponseWriter, r *http.Request, id int)
+
+	// (GET /accounts/{id}/snapshots)
+	ListAccountSnapshots(w http.ResponseWriter, r *http.Request, id int)
+
+	// (POST /accounts/{id}/snapshots)
+	CreateAccountSnapshot(w http.ResponseWriter, r *http.Request, id int)
+
+	// (GET /net-worth/summary)
+	GetNetWorthSummary(w http.ResponseWriter, r *http.Request)
 }
 
 // ServerInterfaceWrapper converts contexts to parameters.
@@ -207,6 +285,72 @@ func (siw *ServerInterfaceWrapper) UpdateAccount(w http.ResponseWriter, r *http.
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.UpdateAccount(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListAccountSnapshots operation middleware
+func (siw *ServerInterfaceWrapper) ListAccountSnapshots(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id int
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListAccountSnapshots(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateAccountSnapshot operation middleware
+func (siw *ServerInterfaceWrapper) CreateAccountSnapshot(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id int
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateAccountSnapshot(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetNetWorthSummary operation middleware
+func (siw *ServerInterfaceWrapper) GetNetWorthSummary(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetNetWorthSummary(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -341,6 +485,9 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/accounts/{id}", wrapper.DeleteAccount)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/accounts/{id}", wrapper.GetAccount)
 	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/accounts/{id}", wrapper.UpdateAccount)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/accounts/{id}/snapshots", wrapper.ListAccountSnapshots)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/accounts/{id}/snapshots", wrapper.CreateAccountSnapshot)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/net-worth/summary", wrapper.GetNetWorthSummary)
 
 	return m
 }
@@ -473,6 +620,80 @@ func (response UpdateAccount404Response) VisitUpdateAccountResponse(w http.Respo
 	return nil
 }
 
+type ListAccountSnapshotsRequestObject struct {
+	Id int `json:"id"`
+}
+
+type ListAccountSnapshotsResponseObject interface {
+	VisitListAccountSnapshotsResponse(w http.ResponseWriter) error
+}
+
+type ListAccountSnapshots200JSONResponse []AccountSnapshot
+
+func (response ListAccountSnapshots200JSONResponse) VisitListAccountSnapshotsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateAccountSnapshotRequestObject struct {
+	Id   int `json:"id"`
+	Body *CreateAccountSnapshotJSONRequestBody
+}
+
+type CreateAccountSnapshotResponseObject interface {
+	VisitCreateAccountSnapshotResponse(w http.ResponseWriter) error
+}
+
+type CreateAccountSnapshot201JSONResponse AccountSnapshot
+
+func (response CreateAccountSnapshot201JSONResponse) VisitCreateAccountSnapshotResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateAccountSnapshot404Response struct {
+}
+
+func (response CreateAccountSnapshot404Response) VisitCreateAccountSnapshotResponse(w http.ResponseWriter) error {
+	w.WriteHeader(404)
+	return nil
+}
+
+type GetNetWorthSummaryRequestObject struct {
+}
+
+type GetNetWorthSummaryResponseObject interface {
+	VisitGetNetWorthSummaryResponse(w http.ResponseWriter) error
+}
+
+type GetNetWorthSummary200JSONResponse NetWorthSummary
+
+func (response GetNetWorthSummary200JSONResponse) VisitGetNetWorthSummaryResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
 
@@ -490,6 +711,15 @@ type StrictServerInterface interface {
 
 	// (PUT /accounts/{id})
 	UpdateAccount(ctx context.Context, request UpdateAccountRequestObject) (UpdateAccountResponseObject, error)
+
+	// (GET /accounts/{id}/snapshots)
+	ListAccountSnapshots(ctx context.Context, request ListAccountSnapshotsRequestObject) (ListAccountSnapshotsResponseObject, error)
+
+	// (POST /accounts/{id}/snapshots)
+	CreateAccountSnapshot(ctx context.Context, request CreateAccountSnapshotRequestObject) (CreateAccountSnapshotResponseObject, error)
+
+	// (GET /net-worth/summary)
+	GetNetWorthSummary(ctx context.Context, request GetNetWorthSummaryRequestObject) (GetNetWorthSummaryResponseObject, error)
 }
 
 type StrictHandlerFunc func(ctx context.Context, w http.ResponseWriter, r *http.Request, request any) (any, error)
@@ -654,6 +884,89 @@ func (sh *strictHandler) UpdateAccount(w http.ResponseWriter, r *http.Request, i
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(UpdateAccountResponseObject); ok {
 		if err := validResponse.VisitUpdateAccountResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListAccountSnapshots operation middleware
+func (sh *strictHandler) ListAccountSnapshots(w http.ResponseWriter, r *http.Request, id int) {
+	var request ListAccountSnapshotsRequestObject
+
+	request.Id = id
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListAccountSnapshots(ctx, request.(ListAccountSnapshotsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListAccountSnapshots")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListAccountSnapshotsResponseObject); ok {
+		if err := validResponse.VisitListAccountSnapshotsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CreateAccountSnapshot operation middleware
+func (sh *strictHandler) CreateAccountSnapshot(w http.ResponseWriter, r *http.Request, id int) {
+	var request CreateAccountSnapshotRequestObject
+
+	request.Id = id
+
+	var body CreateAccountSnapshotJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateAccountSnapshot(ctx, request.(CreateAccountSnapshotRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateAccountSnapshot")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreateAccountSnapshotResponseObject); ok {
+		if err := validResponse.VisitCreateAccountSnapshotResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetNetWorthSummary operation middleware
+func (sh *strictHandler) GetNetWorthSummary(w http.ResponseWriter, r *http.Request) {
+	var request GetNetWorthSummaryRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetNetWorthSummary(ctx, request.(GetNetWorthSummaryRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetNetWorthSummary")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetNetWorthSummaryResponseObject); ok {
+		if err := validResponse.VisitGetNetWorthSummaryResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

@@ -36,10 +36,44 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/accounts/{id}/snapshots": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listAccountSnapshots"];
+        put?: never;
+        post: operations["createAccountSnapshot"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/net-worth/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getNetWorthSummary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** @enum {string} */
+        AccountStatus: "active" | "closed" | "hidden";
         /** @enum {string} */
         AccountType: "checking" | "savings" | "credit_card" | "investment" | "real_estate" | "vehicle" | "loan" | "other_asset" | "other_debt";
         AccountInput: {
@@ -48,11 +82,50 @@ export interface components {
             is_asset: boolean;
             /** Format: double */
             credit_limit?: number | null;
+            /** @default active */
+            status: components["schemas"]["AccountStatus"];
         };
         Account: components["schemas"]["AccountInput"] & {
             id: number;
             /** Format: date-time */
             created_at: string;
+            /** Format: date-time */
+            closed_at?: string | null;
+        };
+        AccountSnapshotInput: {
+            /** Format: double */
+            balance: number;
+            /** Format: date-time */
+            as_of_date: string;
+        };
+        AccountSnapshot: components["schemas"]["AccountSnapshotInput"] & {
+            id: number;
+            account_id: number;
+        };
+        AccountBalance: {
+            id: number;
+            name: string;
+            type: components["schemas"]["AccountType"];
+            /** Format: double */
+            balance?: number | null;
+            /** Format: date-time */
+            as_of_date?: string | null;
+        };
+        AccountTypeGroup: {
+            type: components["schemas"]["AccountType"];
+            /** Format: double */
+            subtotal: number;
+            accounts: components["schemas"]["AccountBalance"][];
+        };
+        NetWorthSummary: {
+            /** Format: double */
+            net_worth: number;
+            /** Format: double */
+            total_assets: number;
+            /** Format: double */
+            total_debts: number;
+            asset_groups: components["schemas"]["AccountTypeGroup"][];
+            debt_groups: components["schemas"]["AccountTypeGroup"][];
         };
     };
     responses: never;
@@ -193,6 +266,81 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    listAccountSnapshots: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of snapshots for this account */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountSnapshot"][];
+                };
+            };
+        };
+    };
+    createAccountSnapshot: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AccountSnapshotInput"];
+            };
+        };
+        responses: {
+            /** @description Created snapshot */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountSnapshot"];
+                };
+            };
+            /** @description Account not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getNetWorthSummary: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Net worth summary grouped by account type */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NetWorthSummary"];
+                };
             };
         };
     };
