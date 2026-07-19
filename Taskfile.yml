@@ -26,12 +26,6 @@ tasks:
       - task: api:build
       - task: api:run
 
-  api:migrate:
-    desc: Run the schema migration
-    dir: apps/api
-    cmds:
-      - go run ./cmd/migrate
-
   web:generate:
     desc: Regenerate TypeScript types from the OpenAPI spec
     dir: packages/api-spec
@@ -55,10 +49,36 @@ tasks:
     cmds:
       - task: api:generate
       - task: web:generate
-      
+
   auth:token:
     desc: Mint a fresh long-lived Clerk test token and copy it to the clipboard
     dir: apps/api
     cmds:
       - go run ./cmd/gettoken | clip
       - echo "Token copied to clipboard"
+
+  db:generate:
+    desc: Regenerate Ent client code from schema files
+    dir: apps/api/internal/db
+    cmds:
+      - go generate ./...
+
+  db:migrate:
+    desc: Apply the current schema to the database (additive changes only)
+    dir: apps/api
+    cmds:
+      - go run ./cmd/migrate
+
+  db:reset:
+    desc: DESTRUCTIVE — wipes local Postgres data and rebuilds schema from scratch
+    cmds:
+      - docker compose down -v
+      - docker compose up -d
+      - powershell -Command "Start-Sleep -Seconds 3"
+      - task: db:migrate
+
+  db:schema-change:
+    desc: Full flow after editing an Ent schema file — regenerate, then reset the DB
+    cmds:
+      - task: db:generate
+      - task: db:reset

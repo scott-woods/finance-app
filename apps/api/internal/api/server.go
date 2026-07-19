@@ -2,6 +2,8 @@ package api
 
 import (
 	"context"
+	"sort"
+	"time"
 
 	"github.com/scott-woods/finance-app/apps/api/internal/db/ent"
 	"github.com/scott-woods/finance-app/apps/api/internal/db/ent/account"
@@ -135,7 +137,7 @@ func (s *Server) ListAccountSnapshots(ctx context.Context, request ListAccountSn
 
 	result := make([]AccountSnapshot, len(snapshots))
 	for i, snap := range snapshots {
-		result[i] = toAPIAccountSnapshot(snap)
+		result[i] = toAPIAccountSnapshot(snap, snap.QueryAccount().OnlyIDX(context.Background()))
 	}
 
 	return ListAccountSnapshots200JSONResponse(result), nil
@@ -160,7 +162,7 @@ func (s *Server) CreateAccountSnapshot(ctx context.Context, request CreateAccoun
 		return nil, err
 	}
 
-	return CreateAccountSnapshot201JSONResponse(toAPIAccountSnapshot(snap)), nil
+	return CreateAccountSnapshot201JSONResponse(toAPIAccountSnapshot(snap, snap.QueryAccount().OnlyIDX(context.Background()))), nil
 }
 
 func (s *Server) GetNetWorthSummary(ctx context.Context, request GetNetWorthSummaryRequestObject) (GetNetWorthSummaryResponseObject, error) {
@@ -177,7 +179,10 @@ func (s *Server) GetNetWorthSummary(ctx context.Context, request GetNetWorthSumm
 
 	for _, a := range accounts {
 		latest, err := a.QuerySnapshots().
-			Order(ent.Desc(accountsnapshot.FieldAsOfDate)).
+			Order(
+				ent.Desc(accountsnapshot.FieldAsOfDate),
+				ent.Desc(accountsnapshot.FieldID),
+			).
 			First(ctx)
 		if err != nil && !ent.IsNotFound(err) {
 			return nil, err
@@ -232,10 +237,113 @@ func (s *Server) GetNetWorthSummary(ctx context.Context, request GetNetWorthSumm
 	}, nil
 }
 
-func toAPIAccountSnapshot(s *ent.AccountSnapshot) AccountSnapshot {
+func (s *Server) GetNetWorthTrend(ctx context.Context, request GetNetWorthTrendRequestObject) (GetNetWorthTrendResponseObject, error) {
+	accounts, err := s.DB.Account.Query().
+		Where(account.StatusEQ(account.StatusActive)).
+		All(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	type accountSnaps struct {
+		isAsset   bool
+		snapshots []*ent.AccountSnapshot
+	}
+
+	byAccount := make(map[int]*accountSnaps)
+	dateSet := make(map[time.Time]struct{})
+
+	for _, a := range accounts {
+		snaps, err := a.QuerySnapshots().
+			Order(ent.Asc(accountsnapshot.FieldAsOfDate), ent.Asc(accountsnapshot.FieldID)).
+			All(ctx)
+		if err != nil {
+			return nil, err
+		}
+		if len(snaps) == 0 {
+			continue
+		}
+		byAccount[a.ID] = &accountSnaps{isAsset: a.IsAsset, snapshots: snaps}
+		for _, snap := range snaps {
+			dateSet[snap.AsOfDate.Truncate(24*time.Hour)] = struct{}{}
+		}
+	}
+
+	dates := make([]time.Time, 0, len(dateSet))
+	for d := range dateSet {
+		dates = append(dates, d)
+	}
+	sort.Slice(dates, func(i, j int) bool { return dates[i].Before(dates[j]) })
+
+	idx := make(map[int]int)
+	latestValue := make(map[int]float64)
+	points := make([]NetWorthTrendPoint, 0, len(dates))
+
+	for _, d := range dates {
+		for accID, as := range byAccount {
+			i := idx[accID]
+			for i < len(as.snapshots) && !as.snapshots[i].AsOfDate.Truncate(24*time.Hour).After(d) {
+				latestValue[accID] = as.snapshots[i].Balance
+				i++
+			}
+			idx[accID] = i
+		}
+
+		var totalAssets, totalDebts float64
+		for accID, as := range byAccount {
+			if v, ok := latestValue[accID]; ok {
+				if as.isAsset {
+					totalAssets += v
+				} else {
+					totalDebts += v
+				}
+			}
+		}
+
+		points = append(points, NetWorthTrendPoint{
+			AsOfDate:    d,
+			NetWorth:    totalAssets - totalDebts,
+			TotalAssets: totalAssets,
+			TotalDebts:  totalDebts,
+		})
+	}
+
+	return GetNetWorthTrend200JSONResponse(points), nil
+}
+
+func (s *Server) UpdateAccountSnapshot(ctx context.Context, request UpdateAccountSnapshotRequestObject) (UpdateAccountSnapshotResponseObject, error) {
+	input := request.Body
+
+	snap, err := s.DB.AccountSnapshot.UpdateOneID(request.SnapshotId).
+		SetBalance(input.Balance).
+		SetAsOfDate(input.AsOfDate).
+		Save(ctx)
+	if ent.IsNotFound(err) {
+		return UpdateAccountSnapshot404Response{}, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return UpdateAccountSnapshot200JSONResponse(toAPIAccountSnapshot(snap, request.Id)), nil
+}
+
+func (s *Server) DeleteAccountSnapshot(ctx context.Context, request DeleteAccountSnapshotRequestObject) (DeleteAccountSnapshotResponseObject, error) {
+	err := s.DB.AccountSnapshot.DeleteOneID(request.SnapshotId).Exec(ctx)
+	if ent.IsNotFound(err) {
+		return DeleteAccountSnapshot404Response{}, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return DeleteAccountSnapshot204Response{}, nil
+}
+
+func toAPIAccountSnapshot(s *ent.AccountSnapshot, accountId int) AccountSnapshot {
 	return AccountSnapshot{
 		Id:        s.ID,
-		AccountId: s.QueryAccount().OnlyIDX(context.Background()),
+		AccountId: accountId,
 		Balance:   s.Balance,
 		AsOfDate:  s.AsOfDate,
 	}

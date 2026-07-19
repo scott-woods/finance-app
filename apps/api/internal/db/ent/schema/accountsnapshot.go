@@ -2,6 +2,7 @@ package schema
 
 import (
 	"entgo.io/ent"
+	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 )
@@ -25,6 +26,7 @@ func (AccountSnapshot) Edges() []ent.Edge {
 		edge.From("account", Account.Type).
 			Ref("snapshots").
 			Unique().
-			Required(),
+			Required().
+			Annotations(entsql.OnDelete(entsql.Cascade)),
 	}
 }

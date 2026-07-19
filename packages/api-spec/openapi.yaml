@@ -125,6 +125,53 @@ paths:
                 $ref: '#/components/schemas/AccountSnapshot'
         '404':
           description: Account not found
+  /accounts/{id}/snapshots/{snapshotId}:
+    put:
+      operationId: updateAccountSnapshot
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: snapshotId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AccountSnapshotInput'
+      responses:
+        '200':
+          description: Updated snapshot
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountSnapshot'
+        '404':
+          description: Snapshot not found
+    delete:
+      operationId: deleteAccountSnapshot
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: snapshotId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Snapshot deleted
+        '404':
+          description: Snapshot not found
   /net-worth/summary:
     get:
       operationId: getNetWorthSummary
@@ -135,6 +182,18 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/NetWorthSummary'
+  /net-worth/trend:
+    get:
+      operationId: getNetWorthTrend
+      responses:
+        '200':
+          description: Net worth over time, one point per date any account changed
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/NetWorthTrendPoint'
 
 components:
   schemas:
@@ -280,3 +339,23 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/AccountTypeGroup'
+    NetWorthTrendPoint:
+      type: object
+      required:
+        - as_of_date
+        - net_worth
+        - total_assets
+        - total_debts
+      properties:
+        as_of_date:
+          type: string
+          format: date-time
+        net_worth:
+          type: number
+          format: double
+        total_assets:
+          type: number
+          format: double
+        total_debts:
+          type: number
+          format: double

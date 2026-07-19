@@ -142,6 +142,14 @@ type NetWorthSummary struct {
 	TotalDebts  float64            `json:"total_debts"`
 }
 
+// NetWorthTrendPoint defines model for NetWorthTrendPoint.
+type NetWorthTrendPoint struct {
+	AsOfDate    time.Time `json:"as_of_date"`
+	NetWorth    float64   `json:"net_worth"`
+	TotalAssets float64   `json:"total_assets"`
+	TotalDebts  float64   `json:"total_debts"`
+}
+
 // CreateAccountJSONRequestBody defines body for CreateAccount for application/json ContentType.
 type CreateAccountJSONRequestBody = AccountInput
 
@@ -150,6 +158,9 @@ type UpdateAccountJSONRequestBody = AccountInput
 
 // CreateAccountSnapshotJSONRequestBody defines body for CreateAccountSnapshot for application/json ContentType.
 type CreateAccountSnapshotJSONRequestBody = AccountSnapshotInput
+
+// UpdateAccountSnapshotJSONRequestBody defines body for UpdateAccountSnapshot for application/json ContentType.
+type UpdateAccountSnapshotJSONRequestBody = AccountSnapshotInput
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
@@ -175,8 +186,17 @@ type ServerInterface interface {
 	// (POST /accounts/{id}/snapshots)
 	CreateAccountSnapshot(w http.ResponseWriter, r *http.Request, id int)
 
+	// (DELETE /accounts/{id}/snapshots/{snapshotId})
+	DeleteAccountSnapshot(w http.ResponseWriter, r *http.Request, id int, snapshotId int)
+
+	// (PUT /accounts/{id}/snapshots/{snapshotId})
+	UpdateAccountSnapshot(w http.ResponseWriter, r *http.Request, id int, snapshotId int)
+
 	// (GET /net-worth/summary)
 	GetNetWorthSummary(w http.ResponseWriter, r *http.Request)
+
+	// (GET /net-worth/trend)
+	GetNetWorthTrend(w http.ResponseWriter, r *http.Request)
 }
 
 // ServerInterfaceWrapper converts contexts to parameters.
@@ -346,11 +366,95 @@ func (siw *ServerInterfaceWrapper) CreateAccountSnapshot(w http.ResponseWriter, 
 	handler.ServeHTTP(w, r)
 }
 
+// DeleteAccountSnapshot operation middleware
+func (siw *ServerInterfaceWrapper) DeleteAccountSnapshot(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id int
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "snapshotId" -------------
+	var snapshotId int
+
+	err = runtime.BindStyledParameterWithOptions("simple", "snapshotId", r.PathValue("snapshotId"), &snapshotId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "snapshotId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteAccountSnapshot(w, r, id, snapshotId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateAccountSnapshot operation middleware
+func (siw *ServerInterfaceWrapper) UpdateAccountSnapshot(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id int
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "snapshotId" -------------
+	var snapshotId int
+
+	err = runtime.BindStyledParameterWithOptions("simple", "snapshotId", r.PathValue("snapshotId"), &snapshotId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "snapshotId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateAccountSnapshot(w, r, id, snapshotId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetNetWorthSummary operation middleware
 func (siw *ServerInterfaceWrapper) GetNetWorthSummary(w http.ResponseWriter, r *http.Request) {
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetNetWorthSummary(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetNetWorthTrend operation middleware
+func (siw *ServerInterfaceWrapper) GetNetWorthTrend(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetNetWorthTrend(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -487,7 +591,10 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/accounts/{id}", wrapper.UpdateAccount)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/accounts/{id}/snapshots", wrapper.ListAccountSnapshots)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/accounts/{id}/snapshots", wrapper.CreateAccountSnapshot)
+	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/accounts/{id}/snapshots/{snapshotId}", wrapper.DeleteAccountSnapshot)
+	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/accounts/{id}/snapshots/{snapshotId}", wrapper.UpdateAccountSnapshot)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/net-worth/summary", wrapper.GetNetWorthSummary)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/net-worth/trend", wrapper.GetNetWorthTrend)
 
 	return m
 }
@@ -673,6 +780,63 @@ func (response CreateAccountSnapshot404Response) VisitCreateAccountSnapshotRespo
 	return nil
 }
 
+type DeleteAccountSnapshotRequestObject struct {
+	Id         int `json:"id"`
+	SnapshotId int `json:"snapshotId"`
+}
+
+type DeleteAccountSnapshotResponseObject interface {
+	VisitDeleteAccountSnapshotResponse(w http.ResponseWriter) error
+}
+
+type DeleteAccountSnapshot204Response struct {
+}
+
+func (response DeleteAccountSnapshot204Response) VisitDeleteAccountSnapshotResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type DeleteAccountSnapshot404Response struct {
+}
+
+func (response DeleteAccountSnapshot404Response) VisitDeleteAccountSnapshotResponse(w http.ResponseWriter) error {
+	w.WriteHeader(404)
+	return nil
+}
+
+type UpdateAccountSnapshotRequestObject struct {
+	Id         int `json:"id"`
+	SnapshotId int `json:"snapshotId"`
+	Body       *UpdateAccountSnapshotJSONRequestBody
+}
+
+type UpdateAccountSnapshotResponseObject interface {
+	VisitUpdateAccountSnapshotResponse(w http.ResponseWriter) error
+}
+
+type UpdateAccountSnapshot200JSONResponse AccountSnapshot
+
+func (response UpdateAccountSnapshot200JSONResponse) VisitUpdateAccountSnapshotResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateAccountSnapshot404Response struct {
+}
+
+func (response UpdateAccountSnapshot404Response) VisitUpdateAccountSnapshotResponse(w http.ResponseWriter) error {
+	w.WriteHeader(404)
+	return nil
+}
+
 type GetNetWorthSummaryRequestObject struct {
 }
 
@@ -683,6 +847,27 @@ type GetNetWorthSummaryResponseObject interface {
 type GetNetWorthSummary200JSONResponse NetWorthSummary
 
 func (response GetNetWorthSummary200JSONResponse) VisitGetNetWorthSummaryResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetNetWorthTrendRequestObject struct {
+}
+
+type GetNetWorthTrendResponseObject interface {
+	VisitGetNetWorthTrendResponse(w http.ResponseWriter) error
+}
+
+type GetNetWorthTrend200JSONResponse []NetWorthTrendPoint
+
+func (response GetNetWorthTrend200JSONResponse) VisitGetNetWorthTrendResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response); err != nil {
@@ -718,8 +903,17 @@ type StrictServerInterface interface {
 	// (POST /accounts/{id}/snapshots)
 	CreateAccountSnapshot(ctx context.Context, request CreateAccountSnapshotRequestObject) (CreateAccountSnapshotResponseObject, error)
 
+	// (DELETE /accounts/{id}/snapshots/{snapshotId})
+	DeleteAccountSnapshot(ctx context.Context, request DeleteAccountSnapshotRequestObject) (DeleteAccountSnapshotResponseObject, error)
+
+	// (PUT /accounts/{id}/snapshots/{snapshotId})
+	UpdateAccountSnapshot(ctx context.Context, request UpdateAccountSnapshotRequestObject) (UpdateAccountSnapshotResponseObject, error)
+
 	// (GET /net-worth/summary)
 	GetNetWorthSummary(ctx context.Context, request GetNetWorthSummaryRequestObject) (GetNetWorthSummaryResponseObject, error)
+
+	// (GET /net-worth/trend)
+	GetNetWorthTrend(ctx context.Context, request GetNetWorthTrendRequestObject) (GetNetWorthTrendResponseObject, error)
 }
 
 type StrictHandlerFunc func(ctx context.Context, w http.ResponseWriter, r *http.Request, request any) (any, error)
@@ -950,6 +1144,67 @@ func (sh *strictHandler) CreateAccountSnapshot(w http.ResponseWriter, r *http.Re
 	}
 }
 
+// DeleteAccountSnapshot operation middleware
+func (sh *strictHandler) DeleteAccountSnapshot(w http.ResponseWriter, r *http.Request, id int, snapshotId int) {
+	var request DeleteAccountSnapshotRequestObject
+
+	request.Id = id
+	request.SnapshotId = snapshotId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteAccountSnapshot(ctx, request.(DeleteAccountSnapshotRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteAccountSnapshot")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(DeleteAccountSnapshotResponseObject); ok {
+		if err := validResponse.VisitDeleteAccountSnapshotResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// UpdateAccountSnapshot operation middleware
+func (sh *strictHandler) UpdateAccountSnapshot(w http.ResponseWriter, r *http.Request, id int, snapshotId int) {
+	var request UpdateAccountSnapshotRequestObject
+
+	request.Id = id
+	request.SnapshotId = snapshotId
+
+	var body UpdateAccountSnapshotJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateAccountSnapshot(ctx, request.(UpdateAccountSnapshotRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateAccountSnapshot")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(UpdateAccountSnapshotResponseObject); ok {
+		if err := validResponse.VisitUpdateAccountSnapshotResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // GetNetWorthSummary operation middleware
 func (sh *strictHandler) GetNetWorthSummary(w http.ResponseWriter, r *http.Request) {
 	var request GetNetWorthSummaryRequestObject
@@ -967,6 +1222,30 @@ func (sh *strictHandler) GetNetWorthSummary(w http.ResponseWriter, r *http.Reque
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(GetNetWorthSummaryResponseObject); ok {
 		if err := validResponse.VisitGetNetWorthSummaryResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetNetWorthTrend operation middleware
+func (sh *strictHandler) GetNetWorthTrend(w http.ResponseWriter, r *http.Request) {
+	var request GetNetWorthTrendRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetNetWorthTrend(ctx, request.(GetNetWorthTrendRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetNetWorthTrend")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetNetWorthTrendResponseObject); ok {
+		if err := validResponse.VisitGetNetWorthTrendResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

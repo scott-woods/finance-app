@@ -52,6 +52,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/accounts/{id}/snapshots/{snapshotId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["updateAccountSnapshot"];
+        post?: never;
+        delete: operations["deleteAccountSnapshot"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/net-worth/summary": {
         parameters: {
             query?: never;
@@ -60,6 +76,22 @@ export interface paths {
             cookie?: never;
         };
         get: operations["getNetWorthSummary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/net-worth/trend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getNetWorthTrend"];
         put?: never;
         post?: never;
         delete?: never;
@@ -126,6 +158,16 @@ export interface components {
             total_debts: number;
             asset_groups: components["schemas"]["AccountTypeGroup"][];
             debt_groups: components["schemas"]["AccountTypeGroup"][];
+        };
+        NetWorthTrendPoint: {
+            /** Format: date-time */
+            as_of_date: string;
+            /** Format: double */
+            net_worth: number;
+            /** Format: double */
+            total_assets: number;
+            /** Format: double */
+            total_debts: number;
         };
     };
     responses: never;
@@ -324,6 +366,68 @@ export interface operations {
             };
         };
     };
+    updateAccountSnapshot: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+                snapshotId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AccountSnapshotInput"];
+            };
+        };
+        responses: {
+            /** @description Updated snapshot */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountSnapshot"];
+                };
+            };
+            /** @description Snapshot not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    deleteAccountSnapshot: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+                snapshotId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Snapshot deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Snapshot not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     getNetWorthSummary: {
         parameters: {
             query?: never;
@@ -340,6 +444,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["NetWorthSummary"];
+                };
+            };
+        };
+    };
+    getNetWorthTrend: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Net worth over time, one point per date any account changed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NetWorthTrendPoint"][];
                 };
             };
         };
