@@ -22,6 +22,11 @@ func (RecurringItem) Fields() []ent.Field {
 		field.Time("start_date"),
 		field.Bool("active").
 			Default(true),
+		field.Time("end_date").
+			Optional().
+			Nillable(),
+		field.Bool("pre_tax").
+			Default(false),
 	}
 }
 

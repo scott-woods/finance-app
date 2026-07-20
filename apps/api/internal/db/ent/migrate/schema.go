@@ -93,6 +93,8 @@ var (
 		{Name: "estimated_amount", Type: field.TypeFloat64},
 		{Name: "start_date", Type: field.TypeTime},
 		{Name: "active", Type: field.TypeBool, Default: true},
+		{Name: "end_date", Type: field.TypeTime, Nullable: true},
+		{Name: "pre_tax", Type: field.TypeBool, Default: false},
 		{Name: "account_recurring_items", Type: field.TypeInt, Nullable: true},
 		{Name: "category_recurring_items", Type: field.TypeInt, Nullable: true},
 	}
@@ -104,13 +106,13 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "recurring_items_accounts_recurring_items",
-				Columns:    []*schema.Column{RecurringItemsColumns[7]},
+				Columns:    []*schema.Column{RecurringItemsColumns[9]},
 				RefColumns: []*schema.Column{AccountsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "recurring_items_categories_recurring_items",
-				Columns:    []*schema.Column{RecurringItemsColumns[8]},
+				Columns:    []*schema.Column{RecurringItemsColumns[10]},
 				RefColumns: []*schema.Column{CategoriesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},

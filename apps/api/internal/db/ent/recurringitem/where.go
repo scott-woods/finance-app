@@ -75,6 +75,16 @@ func Active(v bool) predicate.RecurringItem {
 	return predicate.RecurringItem(sql.FieldEQ(FieldActive, v))
 }
 
+// EndDate applies equality check predicate on the "end_date" field. It's identical to EndDateEQ.
+func EndDate(v time.Time) predicate.RecurringItem {
+	return predicate.RecurringItem(sql.FieldEQ(FieldEndDate, v))
+}
+
+// PreTax applies equality check predicate on the "pre_tax" field. It's identical to PreTaxEQ.
+func PreTax(v bool) predicate.RecurringItem {
+	return predicate.RecurringItem(sql.FieldEQ(FieldPreTax, v))
+}
+
 // KindEQ applies the EQ predicate on the "kind" field.
 func KindEQ(v Kind) predicate.RecurringItem {
 	return predicate.RecurringItem(sql.FieldEQ(FieldKind, v))
@@ -268,6 +278,66 @@ func ActiveEQ(v bool) predicate.RecurringItem {
 // ActiveNEQ applies the NEQ predicate on the "active" field.
 func ActiveNEQ(v bool) predicate.RecurringItem {
 	return predicate.RecurringItem(sql.FieldNEQ(FieldActive, v))
+}
+
+// EndDateEQ applies the EQ predicate on the "end_date" field.
+func EndDateEQ(v time.Time) predicate.RecurringItem {
+	return predicate.RecurringItem(sql.FieldEQ(FieldEndDate, v))
+}
+
+// EndDateNEQ applies the NEQ predicate on the "end_date" field.
+func EndDateNEQ(v time.Time) predicate.RecurringItem {
+	return predicate.RecurringItem(sql.FieldNEQ(FieldEndDate, v))
+}
+
+// EndDateIn applies the In predicate on the "end_date" field.
+func EndDateIn(vs ...time.Time) predicate.RecurringItem {
+	return predicate.RecurringItem(sql.FieldIn(FieldEndDate, vs...))
+}
+
+// EndDateNotIn applies the NotIn predicate on the "end_date" field.
+func EndDateNotIn(vs ...time.Time) predicate.RecurringItem {
+	return predicate.RecurringItem(sql.FieldNotIn(FieldEndDate, vs...))
+}
+
+// EndDateGT applies the GT predicate on the "end_date" field.
+func EndDateGT(v time.Time) predicate.RecurringItem {
+	return predicate.RecurringItem(sql.FieldGT(FieldEndDate, v))
+}
+
+// EndDateGTE applies the GTE predicate on the "end_date" field.
+func EndDateGTE(v time.Time) predicate.RecurringItem {
+	return predicate.RecurringItem(sql.FieldGTE(FieldEndDate, v))
+}
+
+// EndDateLT applies the LT predicate on the "end_date" field.
+func EndDateLT(v time.Time) predicate.RecurringItem {
+	return predicate.RecurringItem(sql.FieldLT(FieldEndDate, v))
+}
+
+// EndDateLTE applies the LTE predicate on the "end_date" field.
+func EndDateLTE(v time.Time) predicate.RecurringItem {
+	return predicate.RecurringItem(sql.FieldLTE(FieldEndDate, v))
+}
+
+// EndDateIsNil applies the IsNil predicate on the "end_date" field.
+func EndDateIsNil() predicate.RecurringItem {
+	return predicate.RecurringItem(sql.FieldIsNull(FieldEndDate))
+}
+
+// EndDateNotNil applies the NotNil predicate on the "end_date" field.
+func EndDateNotNil() predicate.RecurringItem {
+	return predicate.RecurringItem(sql.FieldNotNull(FieldEndDate))
+}
+
+// PreTaxEQ applies the EQ predicate on the "pre_tax" field.
+func PreTaxEQ(v bool) predicate.RecurringItem {
+	return predicate.RecurringItem(sql.FieldEQ(FieldPreTax, v))
+}
+
+// PreTaxNEQ applies the NEQ predicate on the "pre_tax" field.
+func PreTaxNEQ(v bool) predicate.RecurringItem {
+	return predicate.RecurringItem(sql.FieldNEQ(FieldPreTax, v))
 }
 
 // HasAccount applies the HasEdge predicate on the "account" edge.

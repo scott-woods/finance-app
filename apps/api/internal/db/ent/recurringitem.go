@@ -31,6 +31,10 @@ type RecurringItem struct {
 	StartDate time.Time `json:"start_date,omitempty"`
 	// Active holds the value of the "active" field.
 	Active bool `json:"active,omitempty"`
+	// EndDate holds the value of the "end_date" field.
+	EndDate *time.Time `json:"end_date,omitempty"`
+	// PreTax holds the value of the "pre_tax" field.
+	PreTax bool `json:"pre_tax,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the RecurringItemQuery when eager-loading is set.
 	Edges                    RecurringItemEdges `json:"edges"`
@@ -88,7 +92,7 @@ func (*RecurringItem) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case recurringitem.FieldActive:
+		case recurringitem.FieldActive, recurringitem.FieldPreTax:
 			values[i] = new(sql.NullBool)
 		case recurringitem.FieldEstimatedAmount:
 			values[i] = new(sql.NullFloat64)
@@ -96,7 +100,7 @@ func (*RecurringItem) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullInt64)
 		case recurringitem.FieldKind, recurringitem.FieldName, recurringitem.FieldFrequency:
 			values[i] = new(sql.NullString)
-		case recurringitem.FieldStartDate:
+		case recurringitem.FieldStartDate, recurringitem.FieldEndDate:
 			values[i] = new(sql.NullTime)
 		case recurringitem.ForeignKeys[0]: // account_recurring_items
 			values[i] = new(sql.NullInt64)
@@ -158,6 +162,19 @@ func (_m *RecurringItem) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field active", values[i])
 			} else if value.Valid {
 				_m.Active = value.Bool
+			}
+		case recurringitem.FieldEndDate:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field end_date", values[i])
+			} else if value.Valid {
+				_m.EndDate = new(time.Time)
+				*_m.EndDate = value.Time
+			}
+		case recurringitem.FieldPreTax:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field pre_tax", values[i])
+			} else if value.Valid {
+				_m.PreTax = value.Bool
 			}
 		case recurringitem.ForeignKeys[0]:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
@@ -241,6 +258,14 @@ func (_m *RecurringItem) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("active=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Active))
+	builder.WriteString(", ")
+	if v := _m.EndDate; v != nil {
+		builder.WriteString("end_date=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
+	builder.WriteString(", ")
+	builder.WriteString("pre_tax=")
+	builder.WriteString(fmt.Sprintf("%v", _m.PreTax))
 	builder.WriteByte(')')
 	return builder.String()
 }

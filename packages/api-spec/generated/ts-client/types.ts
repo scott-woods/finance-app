@@ -100,6 +100,102 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/categories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listCategories"];
+        put?: never;
+        post: operations["createCategory"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/recurring-items": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listRecurringItems"];
+        put?: never;
+        post: operations["createRecurringItem"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/recurring-items/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["updateRecurringItem"];
+        post?: never;
+        delete: operations["deleteRecurringItem"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/recurring-instances": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listRecurringInstances"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/recurring-instances/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["updateRecurringInstance"];
+        trace?: never;
+    };
+    "/recurring-items/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getRecurringSummary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -168,6 +264,76 @@ export interface components {
             total_assets: number;
             /** Format: double */
             total_debts: number;
+        };
+        /** @enum {string} */
+        CategoryKind: "spending" | "income";
+        CategoryInput: {
+            name: string;
+            kind: components["schemas"]["CategoryKind"];
+        };
+        Category: components["schemas"]["CategoryInput"] & {
+            id: number;
+        };
+        /** @enum {string} */
+        RecurringItemKind: "expense" | "investment_contribution" | "income" | "transfer";
+        /** @enum {string} */
+        RecurringFrequency: "weekly" | "biweekly" | "monthly" | "annual" | "custom_interval";
+        RecurringItemInput: {
+            kind: components["schemas"]["RecurringItemKind"];
+            name: string;
+            frequency: components["schemas"]["RecurringFrequency"];
+            /** Format: double */
+            estimated_amount: number;
+            /** Format: date-time */
+            start_date: string;
+            /** Format: date-time */
+            end_date?: string | null;
+            /** @default true */
+            active: boolean;
+            category_id?: number | null;
+            account_id?: number | null;
+            /** @default false */
+            pre_tax: boolean;
+        };
+        RecurringItem: components["schemas"]["RecurringItemInput"] & {
+            id: number;
+        };
+        /** @enum {string} */
+        RecurringInstanceStatus: "upcoming" | "estimated" | "confirmed" | "paid";
+        RecurringInstance: {
+            id: number;
+            recurring_item_id: number;
+            /** Format: date-time */
+            due_date: string;
+            /** Format: double */
+            estimated_amount: number;
+            /** Format: double */
+            actual_amount?: number | null;
+            status: components["schemas"]["RecurringInstanceStatus"];
+            item_name: string;
+            kind: components["schemas"]["RecurringItemKind"];
+            category_id?: number | null;
+        };
+        RecurringInstanceUpdateInput: {
+            /** Format: double */
+            actual_amount?: number | null;
+            status?: components["schemas"]["RecurringInstanceStatus"];
+        };
+        RecurringSummary: {
+            /** Format: double */
+            total_income: number;
+            /** Format: double */
+            total_expenses: number;
+            /** Format: double */
+            total_investments_pre_tax: number;
+            /** Format: double */
+            total_investments_post_tax: number;
+            /** Format: double */
+            disposable_income: number;
+            /** Format: double */
+            effective_income: number;
+            /** Format: double */
+            savings_rate: number;
         };
     };
     responses: never;
@@ -464,6 +630,230 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["NetWorthTrendPoint"][];
+                };
+            };
+        };
+    };
+    listCategories: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of categories */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Category"][];
+                };
+            };
+        };
+    };
+    createCategory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CategoryInput"];
+            };
+        };
+        responses: {
+            /** @description Created category */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Category"];
+                };
+            };
+        };
+    };
+    listRecurringItems: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of recurring items */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecurringItem"][];
+                };
+            };
+        };
+    };
+    createRecurringItem: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecurringItemInput"];
+            };
+        };
+        responses: {
+            /** @description Created recurring item */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecurringItem"];
+                };
+            };
+        };
+    };
+    updateRecurringItem: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecurringItemInput"];
+            };
+        };
+        responses: {
+            /** @description Updated recurring item */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecurringItem"];
+                };
+            };
+            /** @description Recurring item not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    deleteRecurringItem: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Recurring item deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Recurring item not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    listRecurringInstances: {
+        parameters: {
+            query: {
+                year: number;
+                month: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Recurring instances for the given month, generated on demand */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecurringInstance"][];
+                };
+            };
+        };
+    };
+    updateRecurringInstance: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecurringInstanceUpdateInput"];
+            };
+        };
+        responses: {
+            /** @description Updated recurring instance */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecurringInstance"];
+                };
+            };
+            /** @description Recurring instance not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getRecurringSummary: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Monthly recurring summary — disposable income, savings rate, totals */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecurringSummary"];
                 };
             };
         };

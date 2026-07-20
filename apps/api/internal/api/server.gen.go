@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -76,6 +77,99 @@ func (e AccountType) Valid() bool {
 	}
 }
 
+// Defines values for CategoryKind.
+const (
+	CategoryKindIncome   CategoryKind = "income"
+	CategoryKindSpending CategoryKind = "spending"
+)
+
+// Valid indicates whether the value is a known member of the CategoryKind enum.
+func (e CategoryKind) Valid() bool {
+	switch e {
+	case CategoryKindIncome:
+		return true
+	case CategoryKindSpending:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RecurringFrequency.
+const (
+	Annual         RecurringFrequency = "annual"
+	Biweekly       RecurringFrequency = "biweekly"
+	CustomInterval RecurringFrequency = "custom_interval"
+	Monthly        RecurringFrequency = "monthly"
+	Weekly         RecurringFrequency = "weekly"
+)
+
+// Valid indicates whether the value is a known member of the RecurringFrequency enum.
+func (e RecurringFrequency) Valid() bool {
+	switch e {
+	case Annual:
+		return true
+	case Biweekly:
+		return true
+	case CustomInterval:
+		return true
+	case Monthly:
+		return true
+	case Weekly:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RecurringInstanceStatus.
+const (
+	Confirmed RecurringInstanceStatus = "confirmed"
+	Estimated RecurringInstanceStatus = "estimated"
+	Paid      RecurringInstanceStatus = "paid"
+	Upcoming  RecurringInstanceStatus = "upcoming"
+)
+
+// Valid indicates whether the value is a known member of the RecurringInstanceStatus enum.
+func (e RecurringInstanceStatus) Valid() bool {
+	switch e {
+	case Confirmed:
+		return true
+	case Estimated:
+		return true
+	case Paid:
+		return true
+	case Upcoming:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RecurringItemKind.
+const (
+	RecurringItemKindExpense                RecurringItemKind = "expense"
+	RecurringItemKindIncome                 RecurringItemKind = "income"
+	RecurringItemKindInvestmentContribution RecurringItemKind = "investment_contribution"
+	RecurringItemKindTransfer               RecurringItemKind = "transfer"
+)
+
+// Valid indicates whether the value is a known member of the RecurringItemKind enum.
+func (e RecurringItemKind) Valid() bool {
+	switch e {
+	case RecurringItemKindExpense:
+		return true
+	case RecurringItemKindIncome:
+		return true
+	case RecurringItemKindInvestmentContribution:
+		return true
+	case RecurringItemKindTransfer:
+		return true
+	default:
+		return false
+	}
+}
+
 // Account defines model for Account.
 type Account struct {
 	ClosedAt    *time.Time     `json:"closed_at,omitempty"`
@@ -133,6 +227,22 @@ type AccountTypeGroup struct {
 	Type     AccountType      `json:"type"`
 }
 
+// Category defines model for Category.
+type Category struct {
+	Id   int          `json:"id"`
+	Kind CategoryKind `json:"kind"`
+	Name string       `json:"name"`
+}
+
+// CategoryInput defines model for CategoryInput.
+type CategoryInput struct {
+	Kind CategoryKind `json:"kind"`
+	Name string       `json:"name"`
+}
+
+// CategoryKind defines model for CategoryKind.
+type CategoryKind string
+
 // NetWorthSummary defines model for NetWorthSummary.
 type NetWorthSummary struct {
 	AssetGroups []AccountTypeGroup `json:"asset_groups"`
@@ -150,6 +260,80 @@ type NetWorthTrendPoint struct {
 	TotalDebts  float64   `json:"total_debts"`
 }
 
+// RecurringFrequency defines model for RecurringFrequency.
+type RecurringFrequency string
+
+// RecurringInstance defines model for RecurringInstance.
+type RecurringInstance struct {
+	ActualAmount    *float64                `json:"actual_amount,omitempty"`
+	CategoryId      *int                    `json:"category_id,omitempty"`
+	DueDate         time.Time               `json:"due_date"`
+	EstimatedAmount float64                 `json:"estimated_amount"`
+	Id              int                     `json:"id"`
+	ItemName        string                  `json:"item_name"`
+	Kind            RecurringItemKind       `json:"kind"`
+	RecurringItemId int                     `json:"recurring_item_id"`
+	Status          RecurringInstanceStatus `json:"status"`
+}
+
+// RecurringInstanceStatus defines model for RecurringInstanceStatus.
+type RecurringInstanceStatus string
+
+// RecurringInstanceUpdateInput defines model for RecurringInstanceUpdateInput.
+type RecurringInstanceUpdateInput struct {
+	ActualAmount *float64                 `json:"actual_amount,omitempty"`
+	Status       *RecurringInstanceStatus `json:"status,omitempty"`
+}
+
+// RecurringItem defines model for RecurringItem.
+type RecurringItem struct {
+	AccountId       *int               `json:"account_id,omitempty"`
+	Active          *bool              `json:"active,omitempty"`
+	CategoryId      *int               `json:"category_id,omitempty"`
+	EndDate         *time.Time         `json:"end_date,omitempty"`
+	EstimatedAmount float64            `json:"estimated_amount"`
+	Frequency       RecurringFrequency `json:"frequency"`
+	Id              int                `json:"id"`
+	Kind            RecurringItemKind  `json:"kind"`
+	Name            string             `json:"name"`
+	PreTax          *bool              `json:"pre_tax,omitempty"`
+	StartDate       time.Time          `json:"start_date"`
+}
+
+// RecurringItemInput defines model for RecurringItemInput.
+type RecurringItemInput struct {
+	AccountId       *int               `json:"account_id,omitempty"`
+	Active          *bool              `json:"active,omitempty"`
+	CategoryId      *int               `json:"category_id,omitempty"`
+	EndDate         *time.Time         `json:"end_date,omitempty"`
+	EstimatedAmount float64            `json:"estimated_amount"`
+	Frequency       RecurringFrequency `json:"frequency"`
+	Kind            RecurringItemKind  `json:"kind"`
+	Name            string             `json:"name"`
+	PreTax          *bool              `json:"pre_tax,omitempty"`
+	StartDate       time.Time          `json:"start_date"`
+}
+
+// RecurringItemKind defines model for RecurringItemKind.
+type RecurringItemKind string
+
+// RecurringSummary defines model for RecurringSummary.
+type RecurringSummary struct {
+	DisposableIncome        float64 `json:"disposable_income"`
+	EffectiveIncome         float64 `json:"effective_income"`
+	SavingsRate             float64 `json:"savings_rate"`
+	TotalExpenses           float64 `json:"total_expenses"`
+	TotalIncome             float64 `json:"total_income"`
+	TotalInvestmentsPostTax float64 `json:"total_investments_post_tax"`
+	TotalInvestmentsPreTax  float64 `json:"total_investments_pre_tax"`
+}
+
+// ListRecurringInstancesParams defines parameters for ListRecurringInstances.
+type ListRecurringInstancesParams struct {
+	Year  int `form:"year" json:"year"`
+	Month int `form:"month" json:"month"`
+}
+
 // CreateAccountJSONRequestBody defines body for CreateAccount for application/json ContentType.
 type CreateAccountJSONRequestBody = AccountInput
 
@@ -161,6 +345,18 @@ type CreateAccountSnapshotJSONRequestBody = AccountSnapshotInput
 
 // UpdateAccountSnapshotJSONRequestBody defines body for UpdateAccountSnapshot for application/json ContentType.
 type UpdateAccountSnapshotJSONRequestBody = AccountSnapshotInput
+
+// CreateCategoryJSONRequestBody defines body for CreateCategory for application/json ContentType.
+type CreateCategoryJSONRequestBody = CategoryInput
+
+// UpdateRecurringInstanceJSONRequestBody defines body for UpdateRecurringInstance for application/json ContentType.
+type UpdateRecurringInstanceJSONRequestBody = RecurringInstanceUpdateInput
+
+// CreateRecurringItemJSONRequestBody defines body for CreateRecurringItem for application/json ContentType.
+type CreateRecurringItemJSONRequestBody = RecurringItemInput
+
+// UpdateRecurringItemJSONRequestBody defines body for UpdateRecurringItem for application/json ContentType.
+type UpdateRecurringItemJSONRequestBody = RecurringItemInput
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
@@ -192,11 +388,38 @@ type ServerInterface interface {
 	// (PUT /accounts/{id}/snapshots/{snapshotId})
 	UpdateAccountSnapshot(w http.ResponseWriter, r *http.Request, id int, snapshotId int)
 
+	// (GET /categories)
+	ListCategories(w http.ResponseWriter, r *http.Request)
+
+	// (POST /categories)
+	CreateCategory(w http.ResponseWriter, r *http.Request)
+
 	// (GET /net-worth/summary)
 	GetNetWorthSummary(w http.ResponseWriter, r *http.Request)
 
 	// (GET /net-worth/trend)
 	GetNetWorthTrend(w http.ResponseWriter, r *http.Request)
+
+	// (GET /recurring-instances)
+	ListRecurringInstances(w http.ResponseWriter, r *http.Request, params ListRecurringInstancesParams)
+
+	// (PATCH /recurring-instances/{id})
+	UpdateRecurringInstance(w http.ResponseWriter, r *http.Request, id int)
+
+	// (GET /recurring-items)
+	ListRecurringItems(w http.ResponseWriter, r *http.Request)
+
+	// (POST /recurring-items)
+	CreateRecurringItem(w http.ResponseWriter, r *http.Request)
+
+	// (GET /recurring-items/summary)
+	GetRecurringSummary(w http.ResponseWriter, r *http.Request)
+
+	// (DELETE /recurring-items/{id})
+	DeleteRecurringItem(w http.ResponseWriter, r *http.Request, id int)
+
+	// (PUT /recurring-items/{id})
+	UpdateRecurringItem(w http.ResponseWriter, r *http.Request, id int)
 }
 
 // ServerInterfaceWrapper converts contexts to parameters.
@@ -436,6 +659,34 @@ func (siw *ServerInterfaceWrapper) UpdateAccountSnapshot(w http.ResponseWriter, 
 	handler.ServeHTTP(w, r)
 }
 
+// ListCategories operation middleware
+func (siw *ServerInterfaceWrapper) ListCategories(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListCategories(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateCategory operation middleware
+func (siw *ServerInterfaceWrapper) CreateCategory(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateCategory(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetNetWorthSummary operation middleware
 func (siw *ServerInterfaceWrapper) GetNetWorthSummary(w http.ResponseWriter, r *http.Request) {
 
@@ -455,6 +706,172 @@ func (siw *ServerInterfaceWrapper) GetNetWorthTrend(w http.ResponseWriter, r *ht
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetNetWorthTrend(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListRecurringInstances operation middleware
+func (siw *ServerInterfaceWrapper) ListRecurringInstances(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListRecurringInstancesParams
+
+	// ------------- Required query parameter "year" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "year", r.URL.Query(), &params.Year, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "year"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "year", Err: err})
+		}
+		return
+	}
+
+	// ------------- Required query parameter "month" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "month", r.URL.Query(), &params.Month, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "month"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "month", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListRecurringInstances(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateRecurringInstance operation middleware
+func (siw *ServerInterfaceWrapper) UpdateRecurringInstance(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id int
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateRecurringInstance(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListRecurringItems operation middleware
+func (siw *ServerInterfaceWrapper) ListRecurringItems(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListRecurringItems(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateRecurringItem operation middleware
+func (siw *ServerInterfaceWrapper) CreateRecurringItem(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateRecurringItem(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetRecurringSummary operation middleware
+func (siw *ServerInterfaceWrapper) GetRecurringSummary(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetRecurringSummary(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteRecurringItem operation middleware
+func (siw *ServerInterfaceWrapper) DeleteRecurringItem(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id int
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteRecurringItem(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateRecurringItem operation middleware
+func (siw *ServerInterfaceWrapper) UpdateRecurringItem(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id int
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateRecurringItem(w, r, id)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -593,8 +1010,17 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/accounts/{id}/snapshots", wrapper.CreateAccountSnapshot)
 	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/accounts/{id}/snapshots/{snapshotId}", wrapper.DeleteAccountSnapshot)
 	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/accounts/{id}/snapshots/{snapshotId}", wrapper.UpdateAccountSnapshot)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/categories", wrapper.ListCategories)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/categories", wrapper.CreateCategory)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/net-worth/summary", wrapper.GetNetWorthSummary)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/net-worth/trend", wrapper.GetNetWorthTrend)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/recurring-instances", wrapper.ListRecurringInstances)
+	m.HandleFunc(http.MethodPatch+" "+options.BaseURL+"/recurring-instances/{id}", wrapper.UpdateRecurringInstance)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/recurring-items", wrapper.ListRecurringItems)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/recurring-items", wrapper.CreateRecurringItem)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/recurring-items/summary", wrapper.GetRecurringSummary)
+	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/recurring-items/{id}", wrapper.DeleteRecurringItem)
+	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/recurring-items/{id}", wrapper.UpdateRecurringItem)
 
 	return m
 }
@@ -837,6 +1263,49 @@ func (response UpdateAccountSnapshot404Response) VisitUpdateAccountSnapshotRespo
 	return nil
 }
 
+type ListCategoriesRequestObject struct {
+}
+
+type ListCategoriesResponseObject interface {
+	VisitListCategoriesResponse(w http.ResponseWriter) error
+}
+
+type ListCategories200JSONResponse []Category
+
+func (response ListCategories200JSONResponse) VisitListCategoriesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateCategoryRequestObject struct {
+	Body *CreateCategoryJSONRequestBody
+}
+
+type CreateCategoryResponseObject interface {
+	VisitCreateCategoryResponse(w http.ResponseWriter) error
+}
+
+type CreateCategory201JSONResponse Category
+
+func (response CreateCategory201JSONResponse) VisitCreateCategoryResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type GetNetWorthSummaryRequestObject struct {
 }
 
@@ -879,6 +1348,178 @@ func (response GetNetWorthTrend200JSONResponse) VisitGetNetWorthTrendResponse(w 
 	return err
 }
 
+type ListRecurringInstancesRequestObject struct {
+	Params ListRecurringInstancesParams
+}
+
+type ListRecurringInstancesResponseObject interface {
+	VisitListRecurringInstancesResponse(w http.ResponseWriter) error
+}
+
+type ListRecurringInstances200JSONResponse []RecurringInstance
+
+func (response ListRecurringInstances200JSONResponse) VisitListRecurringInstancesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateRecurringInstanceRequestObject struct {
+	Id   int `json:"id"`
+	Body *UpdateRecurringInstanceJSONRequestBody
+}
+
+type UpdateRecurringInstanceResponseObject interface {
+	VisitUpdateRecurringInstanceResponse(w http.ResponseWriter) error
+}
+
+type UpdateRecurringInstance200JSONResponse RecurringInstance
+
+func (response UpdateRecurringInstance200JSONResponse) VisitUpdateRecurringInstanceResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateRecurringInstance404Response struct {
+}
+
+func (response UpdateRecurringInstance404Response) VisitUpdateRecurringInstanceResponse(w http.ResponseWriter) error {
+	w.WriteHeader(404)
+	return nil
+}
+
+type ListRecurringItemsRequestObject struct {
+}
+
+type ListRecurringItemsResponseObject interface {
+	VisitListRecurringItemsResponse(w http.ResponseWriter) error
+}
+
+type ListRecurringItems200JSONResponse []RecurringItem
+
+func (response ListRecurringItems200JSONResponse) VisitListRecurringItemsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateRecurringItemRequestObject struct {
+	Body *CreateRecurringItemJSONRequestBody
+}
+
+type CreateRecurringItemResponseObject interface {
+	VisitCreateRecurringItemResponse(w http.ResponseWriter) error
+}
+
+type CreateRecurringItem201JSONResponse RecurringItem
+
+func (response CreateRecurringItem201JSONResponse) VisitCreateRecurringItemResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetRecurringSummaryRequestObject struct {
+}
+
+type GetRecurringSummaryResponseObject interface {
+	VisitGetRecurringSummaryResponse(w http.ResponseWriter) error
+}
+
+type GetRecurringSummary200JSONResponse RecurringSummary
+
+func (response GetRecurringSummary200JSONResponse) VisitGetRecurringSummaryResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteRecurringItemRequestObject struct {
+	Id int `json:"id"`
+}
+
+type DeleteRecurringItemResponseObject interface {
+	VisitDeleteRecurringItemResponse(w http.ResponseWriter) error
+}
+
+type DeleteRecurringItem204Response struct {
+}
+
+func (response DeleteRecurringItem204Response) VisitDeleteRecurringItemResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type DeleteRecurringItem404Response struct {
+}
+
+func (response DeleteRecurringItem404Response) VisitDeleteRecurringItemResponse(w http.ResponseWriter) error {
+	w.WriteHeader(404)
+	return nil
+}
+
+type UpdateRecurringItemRequestObject struct {
+	Id   int `json:"id"`
+	Body *UpdateRecurringItemJSONRequestBody
+}
+
+type UpdateRecurringItemResponseObject interface {
+	VisitUpdateRecurringItemResponse(w http.ResponseWriter) error
+}
+
+type UpdateRecurringItem200JSONResponse RecurringItem
+
+func (response UpdateRecurringItem200JSONResponse) VisitUpdateRecurringItemResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateRecurringItem404Response struct {
+}
+
+func (response UpdateRecurringItem404Response) VisitUpdateRecurringItemResponse(w http.ResponseWriter) error {
+	w.WriteHeader(404)
+	return nil
+}
+
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
 
@@ -909,11 +1550,38 @@ type StrictServerInterface interface {
 	// (PUT /accounts/{id}/snapshots/{snapshotId})
 	UpdateAccountSnapshot(ctx context.Context, request UpdateAccountSnapshotRequestObject) (UpdateAccountSnapshotResponseObject, error)
 
+	// (GET /categories)
+	ListCategories(ctx context.Context, request ListCategoriesRequestObject) (ListCategoriesResponseObject, error)
+
+	// (POST /categories)
+	CreateCategory(ctx context.Context, request CreateCategoryRequestObject) (CreateCategoryResponseObject, error)
+
 	// (GET /net-worth/summary)
 	GetNetWorthSummary(ctx context.Context, request GetNetWorthSummaryRequestObject) (GetNetWorthSummaryResponseObject, error)
 
 	// (GET /net-worth/trend)
 	GetNetWorthTrend(ctx context.Context, request GetNetWorthTrendRequestObject) (GetNetWorthTrendResponseObject, error)
+
+	// (GET /recurring-instances)
+	ListRecurringInstances(ctx context.Context, request ListRecurringInstancesRequestObject) (ListRecurringInstancesResponseObject, error)
+
+	// (PATCH /recurring-instances/{id})
+	UpdateRecurringInstance(ctx context.Context, request UpdateRecurringInstanceRequestObject) (UpdateRecurringInstanceResponseObject, error)
+
+	// (GET /recurring-items)
+	ListRecurringItems(ctx context.Context, request ListRecurringItemsRequestObject) (ListRecurringItemsResponseObject, error)
+
+	// (POST /recurring-items)
+	CreateRecurringItem(ctx context.Context, request CreateRecurringItemRequestObject) (CreateRecurringItemResponseObject, error)
+
+	// (GET /recurring-items/summary)
+	GetRecurringSummary(ctx context.Context, request GetRecurringSummaryRequestObject) (GetRecurringSummaryResponseObject, error)
+
+	// (DELETE /recurring-items/{id})
+	DeleteRecurringItem(ctx context.Context, request DeleteRecurringItemRequestObject) (DeleteRecurringItemResponseObject, error)
+
+	// (PUT /recurring-items/{id})
+	UpdateRecurringItem(ctx context.Context, request UpdateRecurringItemRequestObject) (UpdateRecurringItemResponseObject, error)
 }
 
 type StrictHandlerFunc func(ctx context.Context, w http.ResponseWriter, r *http.Request, request any) (any, error)
@@ -1205,6 +1873,61 @@ func (sh *strictHandler) UpdateAccountSnapshot(w http.ResponseWriter, r *http.Re
 	}
 }
 
+// ListCategories operation middleware
+func (sh *strictHandler) ListCategories(w http.ResponseWriter, r *http.Request) {
+	var request ListCategoriesRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListCategories(ctx, request.(ListCategoriesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListCategories")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListCategoriesResponseObject); ok {
+		if err := validResponse.VisitListCategoriesResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CreateCategory operation middleware
+func (sh *strictHandler) CreateCategory(w http.ResponseWriter, r *http.Request) {
+	var request CreateCategoryRequestObject
+
+	var body CreateCategoryJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateCategory(ctx, request.(CreateCategoryRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateCategory")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreateCategoryResponseObject); ok {
+		if err := validResponse.VisitCreateCategoryResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // GetNetWorthSummary operation middleware
 func (sh *strictHandler) GetNetWorthSummary(w http.ResponseWriter, r *http.Request) {
 	var request GetNetWorthSummaryRequestObject
@@ -1246,6 +1969,203 @@ func (sh *strictHandler) GetNetWorthTrend(w http.ResponseWriter, r *http.Request
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(GetNetWorthTrendResponseObject); ok {
 		if err := validResponse.VisitGetNetWorthTrendResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListRecurringInstances operation middleware
+func (sh *strictHandler) ListRecurringInstances(w http.ResponseWriter, r *http.Request, params ListRecurringInstancesParams) {
+	var request ListRecurringInstancesRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListRecurringInstances(ctx, request.(ListRecurringInstancesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListRecurringInstances")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListRecurringInstancesResponseObject); ok {
+		if err := validResponse.VisitListRecurringInstancesResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// UpdateRecurringInstance operation middleware
+func (sh *strictHandler) UpdateRecurringInstance(w http.ResponseWriter, r *http.Request, id int) {
+	var request UpdateRecurringInstanceRequestObject
+
+	request.Id = id
+
+	var body UpdateRecurringInstanceJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateRecurringInstance(ctx, request.(UpdateRecurringInstanceRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateRecurringInstance")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(UpdateRecurringInstanceResponseObject); ok {
+		if err := validResponse.VisitUpdateRecurringInstanceResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListRecurringItems operation middleware
+func (sh *strictHandler) ListRecurringItems(w http.ResponseWriter, r *http.Request) {
+	var request ListRecurringItemsRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListRecurringItems(ctx, request.(ListRecurringItemsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListRecurringItems")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListRecurringItemsResponseObject); ok {
+		if err := validResponse.VisitListRecurringItemsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CreateRecurringItem operation middleware
+func (sh *strictHandler) CreateRecurringItem(w http.ResponseWriter, r *http.Request) {
+	var request CreateRecurringItemRequestObject
+
+	var body CreateRecurringItemJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateRecurringItem(ctx, request.(CreateRecurringItemRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateRecurringItem")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreateRecurringItemResponseObject); ok {
+		if err := validResponse.VisitCreateRecurringItemResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetRecurringSummary operation middleware
+func (sh *strictHandler) GetRecurringSummary(w http.ResponseWriter, r *http.Request) {
+	var request GetRecurringSummaryRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetRecurringSummary(ctx, request.(GetRecurringSummaryRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetRecurringSummary")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetRecurringSummaryResponseObject); ok {
+		if err := validResponse.VisitGetRecurringSummaryResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// DeleteRecurringItem operation middleware
+func (sh *strictHandler) DeleteRecurringItem(w http.ResponseWriter, r *http.Request, id int) {
+	var request DeleteRecurringItemRequestObject
+
+	request.Id = id
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteRecurringItem(ctx, request.(DeleteRecurringItemRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteRecurringItem")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(DeleteRecurringItemResponseObject); ok {
+		if err := validResponse.VisitDeleteRecurringItemResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// UpdateRecurringItem operation middleware
+func (sh *strictHandler) UpdateRecurringItem(w http.ResponseWriter, r *http.Request, id int) {
+	var request UpdateRecurringItemRequestObject
+
+	request.Id = id
+
+	var body UpdateRecurringItemJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateRecurringItem(ctx, request.(UpdateRecurringItemRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateRecurringItem")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(UpdateRecurringItemResponseObject); ok {
+		if err := validResponse.VisitUpdateRecurringItemResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

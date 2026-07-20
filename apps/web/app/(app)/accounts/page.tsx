@@ -130,8 +130,6 @@ function AccountColumn({
   isAsset: boolean
   onSaved: () => void
 }) {
-  const amountColor = isAsset ? 'text-positive' : 'text-negative'
-
   return (
     <div className="bg-card border border-border rounded-xl p-5">
       <div className="flex items-center justify-between mb-4">
@@ -142,14 +140,14 @@ function AccountColumn({
       {groups.length === 0 ? (
         <p className="text-text-muted text-sm">None yet.</p>
       ) : (
-        <div className="flex flex-col gap-5">
+        <div className="flex flex-col gap-5 max-h-[640px] overflow-y-auto">
           {groups.map((group) => (
             <div key={group.type}>
               <div className="flex items-baseline justify-between mb-2">
                 <p className="text-text-primary text-sm font-medium">
                   {ACCOUNT_TYPE_LABELS[group.type]}
                 </p>
-                <p className={`text-base font-semibold ${amountColor}`}>
+                <p className={`text-sm ${isAsset ? 'text-positive' : 'text-negative'}`}>
                   {currency(group.subtotal)}
                 </p>
               </div>
@@ -177,7 +175,7 @@ function AccountColumn({
                         )}
                       </div>
                       {account.balance != null && (
-                        <p className={`text-lg font-semibold ${amountColor} shrink-0`}>
+                        <p className={`text-lg font-semibold ${isAsset ? 'text-positive' : 'text-negative'} shrink-0`}>
                           {currency(account.balance)}
                         </p>
                       )}

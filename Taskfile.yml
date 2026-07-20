@@ -82,3 +82,9 @@ tasks:
     cmds:
       - task: db:generate
       - task: db:reset
+  
+  db:seed-categories:
+    desc: Seed starter categories (safe to re-run)
+    dir: apps/api
+    cmds:
+      - go run ./cmd/seedcategories

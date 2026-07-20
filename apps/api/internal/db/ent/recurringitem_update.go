@@ -122,6 +122,40 @@ func (_u *RecurringItemUpdate) SetNillableActive(v *bool) *RecurringItemUpdate {
 	return _u
 }
 
+// SetEndDate sets the "end_date" field.
+func (_u *RecurringItemUpdate) SetEndDate(v time.Time) *RecurringItemUpdate {
+	_u.mutation.SetEndDate(v)
+	return _u
+}
+
+// SetNillableEndDate sets the "end_date" field if the given value is not nil.
+func (_u *RecurringItemUpdate) SetNillableEndDate(v *time.Time) *RecurringItemUpdate {
+	if v != nil {
+		_u.SetEndDate(*v)
+	}
+	return _u
+}
+
+// ClearEndDate clears the value of the "end_date" field.
+func (_u *RecurringItemUpdate) ClearEndDate() *RecurringItemUpdate {
+	_u.mutation.ClearEndDate()
+	return _u
+}
+
+// SetPreTax sets the "pre_tax" field.
+func (_u *RecurringItemUpdate) SetPreTax(v bool) *RecurringItemUpdate {
+	_u.mutation.SetPreTax(v)
+	return _u
+}
+
+// SetNillablePreTax sets the "pre_tax" field if the given value is not nil.
+func (_u *RecurringItemUpdate) SetNillablePreTax(v *bool) *RecurringItemUpdate {
+	if v != nil {
+		_u.SetPreTax(*v)
+	}
+	return _u
+}
+
 // SetAccountID sets the "account" edge to the Account entity by ID.
 func (_u *RecurringItemUpdate) SetAccountID(id int) *RecurringItemUpdate {
 	_u.mutation.SetAccountID(id)
@@ -292,6 +326,15 @@ func (_u *RecurringItemUpdate) sqlSave(ctx context.Context) (_node int, err erro
 	}
 	if value, ok := _u.mutation.Active(); ok {
 		_spec.SetField(recurringitem.FieldActive, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.EndDate(); ok {
+		_spec.SetField(recurringitem.FieldEndDate, field.TypeTime, value)
+	}
+	if _u.mutation.EndDateCleared() {
+		_spec.ClearField(recurringitem.FieldEndDate, field.TypeTime)
+	}
+	if value, ok := _u.mutation.PreTax(); ok {
+		_spec.SetField(recurringitem.FieldPreTax, field.TypeBool, value)
 	}
 	if _u.mutation.AccountCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -507,6 +550,40 @@ func (_u *RecurringItemUpdateOne) SetNillableActive(v *bool) *RecurringItemUpdat
 	return _u
 }
 
+// SetEndDate sets the "end_date" field.
+func (_u *RecurringItemUpdateOne) SetEndDate(v time.Time) *RecurringItemUpdateOne {
+	_u.mutation.SetEndDate(v)
+	return _u
+}
+
+// SetNillableEndDate sets the "end_date" field if the given value is not nil.
+func (_u *RecurringItemUpdateOne) SetNillableEndDate(v *time.Time) *RecurringItemUpdateOne {
+	if v != nil {
+		_u.SetEndDate(*v)
+	}
+	return _u
+}
+
+// ClearEndDate clears the value of the "end_date" field.
+func (_u *RecurringItemUpdateOne) ClearEndDate() *RecurringItemUpdateOne {
+	_u.mutation.ClearEndDate()
+	return _u
+}
+
+// SetPreTax sets the "pre_tax" field.
+func (_u *RecurringItemUpdateOne) SetPreTax(v bool) *RecurringItemUpdateOne {
+	_u.mutation.SetPreTax(v)
+	return _u
+}
+
+// SetNillablePreTax sets the "pre_tax" field if the given value is not nil.
+func (_u *RecurringItemUpdateOne) SetNillablePreTax(v *bool) *RecurringItemUpdateOne {
+	if v != nil {
+		_u.SetPreTax(*v)
+	}
+	return _u
+}
+
 // SetAccountID sets the "account" edge to the Account entity by ID.
 func (_u *RecurringItemUpdateOne) SetAccountID(id int) *RecurringItemUpdateOne {
 	_u.mutation.SetAccountID(id)
@@ -707,6 +784,15 @@ func (_u *RecurringItemUpdateOne) sqlSave(ctx context.Context) (_node *Recurring
 	}
 	if value, ok := _u.mutation.Active(); ok {
 		_spec.SetField(recurringitem.FieldActive, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.EndDate(); ok {
+		_spec.SetField(recurringitem.FieldEndDate, field.TypeTime, value)
+	}
+	if _u.mutation.EndDateCleared() {
+		_spec.ClearField(recurringitem.FieldEndDate, field.TypeTime)
+	}
+	if value, ok := _u.mutation.PreTax(); ok {
+		_spec.SetField(recurringitem.FieldPreTax, field.TypeBool, value)
 	}
 	if _u.mutation.AccountCleared() {
 		edge := &sqlgraph.EdgeSpec{

@@ -46,6 +46,10 @@ func init() {
 	recurringitemDescActive := recurringitemFields[5].Descriptor()
 	// recurringitem.DefaultActive holds the default value on creation for the active field.
 	recurringitem.DefaultActive = recurringitemDescActive.Default.(bool)
+	// recurringitemDescPreTax is the schema descriptor for pre_tax field.
+	recurringitemDescPreTax := recurringitemFields[7].Descriptor()
+	// recurringitem.DefaultPreTax holds the default value on creation for the pre_tax field.
+	recurringitem.DefaultPreTax = recurringitemDescPreTax.Default.(bool)
 	transactionFields := schema.Transaction{}.Fields()
 	_ = transactionFields
 	// transactionDescCreatedAt is the schema descriptor for created_at field.

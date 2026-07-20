@@ -26,6 +26,10 @@ const (
 	FieldStartDate = "start_date"
 	// FieldActive holds the string denoting the active field in the database.
 	FieldActive = "active"
+	// FieldEndDate holds the string denoting the end_date field in the database.
+	FieldEndDate = "end_date"
+	// FieldPreTax holds the string denoting the pre_tax field in the database.
+	FieldPreTax = "pre_tax"
 	// EdgeAccount holds the string denoting the account edge name in mutations.
 	EdgeAccount = "account"
 	// EdgeCategory holds the string denoting the category edge name in mutations.
@@ -66,6 +70,8 @@ var Columns = []string{
 	FieldEstimatedAmount,
 	FieldStartDate,
 	FieldActive,
+	FieldEndDate,
+	FieldPreTax,
 }
 
 // ForeignKeys holds the SQL foreign-keys that are owned by the "recurring_items"
@@ -95,6 +101,8 @@ var (
 	NameValidator func(string) error
 	// DefaultActive holds the default value on creation for the "active" field.
 	DefaultActive bool
+	// DefaultPreTax holds the default value on creation for the "pre_tax" field.
+	DefaultPreTax bool
 )
 
 // Kind defines the type for the "kind" enum field.
@@ -184,6 +192,16 @@ func ByStartDate(opts ...sql.OrderTermOption) OrderOption {
 // ByActive orders the results by the active field.
 func ByActive(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldActive, opts...).ToFunc()
+}
+
+// ByEndDate orders the results by the end_date field.
+func ByEndDate(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldEndDate, opts...).ToFunc()
+}
+
+// ByPreTax orders the results by the pre_tax field.
+func ByPreTax(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldPreTax, opts...).ToFunc()
 }
 
 // ByAccountField orders the results by account field.

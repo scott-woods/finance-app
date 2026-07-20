@@ -2,6 +2,7 @@ package schema
 
 import (
 	"entgo.io/ent"
+	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 )
@@ -28,7 +29,8 @@ func (RecurringInstance) Edges() []ent.Edge {
 		edge.From("recurring_item", RecurringItem.Type).
 			Ref("instances").
 			Unique().
-			Required(),
+			Required().
+			Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.To("transaction", Transaction.Type).
 			Unique(),
 	}

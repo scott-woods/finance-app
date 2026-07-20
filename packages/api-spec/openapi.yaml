@@ -194,6 +194,154 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/NetWorthTrendPoint'
+  /categories:
+    get:
+      operationId: listCategories
+      responses:
+        '200':
+          description: List of categories
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Category'
+    post:
+      operationId: createCategory
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CategoryInput'
+      responses:
+        '201':
+          description: Created category
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+  /recurring-items:
+    get:
+      operationId: listRecurringItems
+      responses:
+        '200':
+          description: List of recurring items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RecurringItem'
+    post:
+      operationId: createRecurringItem
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecurringItemInput'
+      responses:
+        '201':
+          description: Created recurring item
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecurringItem'
+  /recurring-items/{id}:
+    put:
+      operationId: updateRecurringItem
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecurringItemInput'
+      responses:
+        '200':
+          description: Updated recurring item
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecurringItem'
+        '404':
+          description: Recurring item not found
+    delete:
+      operationId: deleteRecurringItem
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Recurring item deleted
+        '404':
+          description: Recurring item not found
+  /recurring-instances:
+    get:
+      operationId: listRecurringInstances
+      parameters:
+        - name: year
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: month
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Recurring instances for the given month, generated on demand
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RecurringInstance'
+  /recurring-instances/{id}:
+    patch:
+      operationId: updateRecurringInstance
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecurringInstanceUpdateInput'
+      responses:
+        '200':
+          description: Updated recurring instance
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecurringInstance'
+        '404':
+          description: Recurring instance not found
+  /recurring-items/summary:
+    get:
+      operationId: getRecurringSummary
+      responses:
+        '200':
+          description: Monthly recurring summary — disposable income, savings rate, totals
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecurringSummary'
 
 components:
   schemas:
@@ -357,5 +505,172 @@ components:
           type: number
           format: double
         total_debts:
+          type: number
+          format: double
+    CategoryKind:
+      type: string
+      enum:
+        - spending
+        - income
+    CategoryInput:
+      type: object
+      required:
+        - name
+        - kind
+      properties:
+        name:
+          type: string
+        kind:
+          $ref: '#/components/schemas/CategoryKind'
+    Category:
+      allOf:
+        - $ref: '#/components/schemas/CategoryInput'
+        - type: object
+          required:
+            - id
+          properties:
+            id:
+              type: integer
+    RecurringItemKind:
+      type: string
+      enum:
+        - expense
+        - investment_contribution
+        - income
+        - transfer
+    RecurringFrequency:
+      type: string
+      enum:
+        - weekly
+        - biweekly
+        - monthly
+        - annual
+        - custom_interval
+    RecurringItemInput:
+      type: object
+      required:
+        - kind
+        - name
+        - frequency
+        - estimated_amount
+        - start_date
+      properties:
+        kind:
+          $ref: '#/components/schemas/RecurringItemKind'
+        name:
+          type: string
+        frequency:
+          $ref: '#/components/schemas/RecurringFrequency'
+        estimated_amount:
+          type: number
+          format: double
+        start_date:
+          type: string
+          format: date-time
+        end_date:
+          type: string
+          format: date-time
+          nullable: true
+        active:
+          type: boolean
+          default: true
+        category_id:
+          type: integer
+          nullable: true
+        account_id:
+          type: integer
+          nullable: true
+        pre_tax:
+          type: boolean
+          default: false
+    RecurringItem:
+      allOf:
+        - $ref: '#/components/schemas/RecurringItemInput'
+        - type: object
+          required:
+            - id
+          properties:
+            id:
+              type: integer
+    RecurringInstanceStatus:
+      type: string
+      enum:
+        - upcoming
+        - estimated
+        - confirmed
+        - paid
+    RecurringInstance:
+      type: object
+      required:
+        - id
+        - recurring_item_id
+        - due_date
+        - estimated_amount
+        - status
+        - item_name
+        - kind
+      properties:
+        id:
+          type: integer
+        recurring_item_id:
+          type: integer
+        due_date:
+          type: string
+          format: date-time
+        estimated_amount:
+          type: number
+          format: double
+        actual_amount:
+          type: number
+          format: double
+          nullable: true
+        status:
+          $ref: '#/components/schemas/RecurringInstanceStatus'
+        item_name:
+          type: string
+        kind:
+          $ref: '#/components/schemas/RecurringItemKind'
+        category_id:
+          type: integer
+          nullable: true
+    RecurringInstanceUpdateInput:
+      type: object
+      properties:
+        actual_amount:
+          type: number
+          format: double
+          nullable: true
+        status:
+          $ref: '#/components/schemas/RecurringInstanceStatus'
+    RecurringSummary:
+      type: object
+      required:
+        - total_income
+        - total_expenses
+        - total_investments_pre_tax
+        - total_investments_post_tax
+        - disposable_income
+        - effective_income
+        - savings_rate
+      properties:
+        total_income:
+          type: number
+          format: double
+        total_expenses:
+          type: number
+          format: double
+        total_investments_pre_tax:
+          type: number
+          format: double
+        total_investments_post_tax:
+          type: number
+          format: double
+        disposable_income:
+          type: number
+          format: double
+        effective_income:
+          type: number
+          format: double
+        savings_rate:
           type: number
           format: double

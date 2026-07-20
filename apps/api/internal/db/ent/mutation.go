@@ -2963,6 +2963,8 @@ type RecurringItemMutation struct {
 	addestimated_amount *float64
 	start_date          *time.Time
 	active              *bool
+	end_date            *time.Time
+	pre_tax             *bool
 	clearedFields       map[string]struct{}
 	account             *int
 	clearedaccount      bool
@@ -3310,6 +3312,91 @@ func (m *RecurringItemMutation) ResetActive() {
 	m.active = nil
 }
 
+// SetEndDate sets the "end_date" field.
+func (m *RecurringItemMutation) SetEndDate(t time.Time) {
+	m.end_date = &t
+}
+
+// EndDate returns the value of the "end_date" field in the mutation.
+func (m *RecurringItemMutation) EndDate() (r time.Time, exists bool) {
+	v := m.end_date
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldEndDate returns the old "end_date" field's value of the RecurringItem entity.
+// If the RecurringItem object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RecurringItemMutation) OldEndDate(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldEndDate is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldEndDate requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldEndDate: %w", err)
+	}
+	return oldValue.EndDate, nil
+}
+
+// ClearEndDate clears the value of the "end_date" field.
+func (m *RecurringItemMutation) ClearEndDate() {
+	m.end_date = nil
+	m.clearedFields[recurringitem.FieldEndDate] = struct{}{}
+}
+
+// EndDateCleared returns if the "end_date" field was cleared in this mutation.
+func (m *RecurringItemMutation) EndDateCleared() bool {
+	_, ok := m.clearedFields[recurringitem.FieldEndDate]
+	return ok
+}
+
+// ResetEndDate resets all changes to the "end_date" field.
+func (m *RecurringItemMutation) ResetEndDate() {
+	m.end_date = nil
+	delete(m.clearedFields, recurringitem.FieldEndDate)
+}
+
+// SetPreTax sets the "pre_tax" field.
+func (m *RecurringItemMutation) SetPreTax(b bool) {
+	m.pre_tax = &b
+}
+
+// PreTax returns the value of the "pre_tax" field in the mutation.
+func (m *RecurringItemMutation) PreTax() (r bool, exists bool) {
+	v := m.pre_tax
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPreTax returns the old "pre_tax" field's value of the RecurringItem entity.
+// If the RecurringItem object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RecurringItemMutation) OldPreTax(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPreTax is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPreTax requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPreTax: %w", err)
+	}
+	return oldValue.PreTax, nil
+}
+
+// ResetPreTax resets all changes to the "pre_tax" field.
+func (m *RecurringItemMutation) ResetPreTax() {
+	m.pre_tax = nil
+}
+
 // SetAccountID sets the "account" edge to the Account entity by id.
 func (m *RecurringItemMutation) SetAccountID(id int) {
 	m.account = &id
@@ -3476,7 +3563,7 @@ func (m *RecurringItemMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *RecurringItemMutation) Fields() []string {
-	fields := make([]string, 0, 6)
+	fields := make([]string, 0, 8)
 	if m.kind != nil {
 		fields = append(fields, recurringitem.FieldKind)
 	}
@@ -3494,6 +3581,12 @@ func (m *RecurringItemMutation) Fields() []string {
 	}
 	if m.active != nil {
 		fields = append(fields, recurringitem.FieldActive)
+	}
+	if m.end_date != nil {
+		fields = append(fields, recurringitem.FieldEndDate)
+	}
+	if m.pre_tax != nil {
+		fields = append(fields, recurringitem.FieldPreTax)
 	}
 	return fields
 }
@@ -3515,6 +3608,10 @@ func (m *RecurringItemMutation) Field(name string) (ent.Value, bool) {
 		return m.StartDate()
 	case recurringitem.FieldActive:
 		return m.Active()
+	case recurringitem.FieldEndDate:
+		return m.EndDate()
+	case recurringitem.FieldPreTax:
+		return m.PreTax()
 	}
 	return nil, false
 }
@@ -3536,6 +3633,10 @@ func (m *RecurringItemMutation) OldField(ctx context.Context, name string) (ent.
 		return m.OldStartDate(ctx)
 	case recurringitem.FieldActive:
 		return m.OldActive(ctx)
+	case recurringitem.FieldEndDate:
+		return m.OldEndDate(ctx)
+	case recurringitem.FieldPreTax:
+		return m.OldPreTax(ctx)
 	}
 	return nil, fmt.Errorf("unknown RecurringItem field %s", name)
 }
@@ -3587,6 +3688,20 @@ func (m *RecurringItemMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetActive(v)
 		return nil
+	case recurringitem.FieldEndDate:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetEndDate(v)
+		return nil
+	case recurringitem.FieldPreTax:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPreTax(v)
+		return nil
 	}
 	return fmt.Errorf("unknown RecurringItem field %s", name)
 }
@@ -3631,7 +3746,11 @@ func (m *RecurringItemMutation) AddField(name string, value ent.Value) error {
 // ClearedFields returns all nullable fields that were cleared during this
 // mutation.
 func (m *RecurringItemMutation) ClearedFields() []string {
-	return nil
+	var fields []string
+	if m.FieldCleared(recurringitem.FieldEndDate) {
+		fields = append(fields, recurringitem.FieldEndDate)
+	}
+	return fields
 }
 
 // FieldCleared returns a boolean indicating if a field with the given name was
@@ -3644,6 +3763,11 @@ func (m *RecurringItemMutation) FieldCleared(name string) bool {
 // ClearField clears the value of the field with the given name. It returns an
 // error if the field is not defined in the schema.
 func (m *RecurringItemMutation) ClearField(name string) error {
+	switch name {
+	case recurringitem.FieldEndDate:
+		m.ClearEndDate()
+		return nil
+	}
 	return fmt.Errorf("unknown RecurringItem nullable field %s", name)
 }
 
@@ -3668,6 +3792,12 @@ func (m *RecurringItemMutation) ResetField(name string) error {
 		return nil
 	case recurringitem.FieldActive:
 		m.ResetActive()
+		return nil
+	case recurringitem.FieldEndDate:
+		m.ResetEndDate()
+		return nil
+	case recurringitem.FieldPreTax:
+		m.ResetPreTax()
 		return nil
 	}
 	return fmt.Errorf("unknown RecurringItem field %s", name)

@@ -67,6 +67,34 @@ func (_c *RecurringItemCreate) SetNillableActive(v *bool) *RecurringItemCreate {
 	return _c
 }
 
+// SetEndDate sets the "end_date" field.
+func (_c *RecurringItemCreate) SetEndDate(v time.Time) *RecurringItemCreate {
+	_c.mutation.SetEndDate(v)
+	return _c
+}
+
+// SetNillableEndDate sets the "end_date" field if the given value is not nil.
+func (_c *RecurringItemCreate) SetNillableEndDate(v *time.Time) *RecurringItemCreate {
+	if v != nil {
+		_c.SetEndDate(*v)
+	}
+	return _c
+}
+
+// SetPreTax sets the "pre_tax" field.
+func (_c *RecurringItemCreate) SetPreTax(v bool) *RecurringItemCreate {
+	_c.mutation.SetPreTax(v)
+	return _c
+}
+
+// SetNillablePreTax sets the "pre_tax" field if the given value is not nil.
+func (_c *RecurringItemCreate) SetNillablePreTax(v *bool) *RecurringItemCreate {
+	if v != nil {
+		_c.SetPreTax(*v)
+	}
+	return _c
+}
+
 // SetAccountID sets the "account" edge to the Account entity by ID.
 func (_c *RecurringItemCreate) SetAccountID(id int) *RecurringItemCreate {
 	_c.mutation.SetAccountID(id)
@@ -159,6 +187,10 @@ func (_c *RecurringItemCreate) defaults() {
 		v := recurringitem.DefaultActive
 		_c.mutation.SetActive(v)
 	}
+	if _, ok := _c.mutation.PreTax(); !ok {
+		v := recurringitem.DefaultPreTax
+		_c.mutation.SetPreTax(v)
+	}
 }
 
 // check runs all checks and user-defined validators on the builder.
@@ -195,6 +227,9 @@ func (_c *RecurringItemCreate) check() error {
 	}
 	if _, ok := _c.mutation.Active(); !ok {
 		return &ValidationError{Name: "active", err: errors.New(`ent: missing required field "RecurringItem.active"`)}
+	}
+	if _, ok := _c.mutation.PreTax(); !ok {
+		return &ValidationError{Name: "pre_tax", err: errors.New(`ent: missing required field "RecurringItem.pre_tax"`)}
 	}
 	return nil
 }
@@ -245,6 +280,14 @@ func (_c *RecurringItemCreate) createSpec() (*RecurringItem, *sqlgraph.CreateSpe
 	if value, ok := _c.mutation.Active(); ok {
 		_spec.SetField(recurringitem.FieldActive, field.TypeBool, value)
 		_node.Active = value
+	}
+	if value, ok := _c.mutation.EndDate(); ok {
+		_spec.SetField(recurringitem.FieldEndDate, field.TypeTime, value)
+		_node.EndDate = &value
+	}
+	if value, ok := _c.mutation.PreTax(); ok {
+		_spec.SetField(recurringitem.FieldPreTax, field.TypeBool, value)
+		_node.PreTax = value
 	}
 	if nodes := _c.mutation.AccountIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
