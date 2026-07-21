@@ -178,52 +178,11 @@ func (s *Server) UpdateRecurringInstance(ctx context.Context, request UpdateRecu
 }
 
 func (s *Server) GetRecurringSummary(ctx context.Context, request GetRecurringSummaryRequestObject) (GetRecurringSummaryResponseObject, error) {
-	items, err := s.DB.RecurringItem.Query().
-		Where(recurringitem.ActiveEQ(true)).
-		All(ctx)
+	summary, err := s.computeRecurringSummary(ctx)
 	if err != nil {
 		return nil, err
 	}
-
-	var totalIncome, totalExpenses, investPreTax, investPostTax, totalTransfers float64
-
-	for _, item := range items {
-		monthly := monthlyEquivalent(item.EstimatedAmount, item.Frequency)
-
-		switch item.Kind {
-		case recurringitem.KindIncome:
-			totalIncome += monthly
-		case recurringitem.KindExpense:
-			totalExpenses += monthly
-		case recurringitem.KindInvestmentContribution:
-			if item.PreTax {
-				investPreTax += monthly
-			} else {
-				investPostTax += monthly
-			}
-		case recurringitem.KindTransfer:
-			totalTransfers += monthly
-		}
-	}
-
-	disposableIncome := totalIncome - totalExpenses - investPostTax - totalTransfers
-	effectiveIncome := totalIncome + investPreTax
-	totalInvestments := investPreTax + investPostTax
-
-	var savingsRate float64
-	if effectiveIncome > 0 {
-		savingsRate = (totalInvestments / effectiveIncome) * 100
-	}
-
-	return GetRecurringSummary200JSONResponse{
-		TotalIncome:             totalIncome,
-		TotalExpenses:           totalExpenses,
-		TotalInvestmentsPreTax:  investPreTax,
-		TotalInvestmentsPostTax: investPostTax,
-		DisposableIncome:        disposableIncome,
-		EffectiveIncome:         effectiveIncome,
-		SavingsRate:             savingsRate,
-	}, nil
+	return GetRecurringSummary200JSONResponse(summary), nil
 }
 
 func (s *Server) ensureInstancesGenerated(ctx context.Context, monthStart, monthEnd time.Time) error {
@@ -268,6 +227,55 @@ func (s *Server) ensureInstancesGenerated(ctx context.Context, monthStart, month
 	}
 
 	return nil
+}
+
+func (s *Server) computeRecurringSummary(ctx context.Context) (RecurringSummary, error) {
+	items, err := s.DB.RecurringItem.Query().
+		Where(recurringitem.ActiveEQ(true)).
+		All(ctx)
+	if err != nil {
+		return RecurringSummary{}, err
+	}
+
+	var totalIncome, totalExpenses, investPreTax, investPostTax, totalTransfers float64
+
+	for _, item := range items {
+		monthly := monthlyEquivalent(item.EstimatedAmount, item.Frequency)
+
+		switch item.Kind {
+		case recurringitem.KindIncome:
+			totalIncome += monthly
+		case recurringitem.KindExpense:
+			totalExpenses += monthly
+		case recurringitem.KindInvestmentContribution:
+			if item.PreTax {
+				investPreTax += monthly
+			} else {
+				investPostTax += monthly
+			}
+		case recurringitem.KindTransfer:
+			totalTransfers += monthly
+		}
+	}
+
+	disposableIncome := totalIncome - totalExpenses - investPostTax - totalTransfers
+	effectiveIncome := totalIncome + investPreTax
+	totalInvestments := investPreTax + investPostTax
+
+	var savingsRate float64
+	if effectiveIncome > 0 {
+		savingsRate = (totalInvestments / effectiveIncome) * 100
+	}
+
+	return RecurringSummary{
+		TotalIncome:             totalIncome,
+		TotalExpenses:           totalExpenses,
+		TotalInvestmentsPreTax:  investPreTax,
+		TotalInvestmentsPostTax: investPostTax,
+		DisposableIncome:        disposableIncome,
+		EffectiveIncome:         effectiveIncome,
+		SavingsRate:             savingsRate,
+	}, nil
 }
 
 func toAPIRecurringInstance(inst *ent.RecurringInstance) RecurringInstance {

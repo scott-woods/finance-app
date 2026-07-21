@@ -342,6 +342,104 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/RecurringSummary'
+  /transactions:
+    get:
+      operationId: listTransactions
+      parameters:
+        - name: year
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: month
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Transactions for the given month
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Transaction'
+    post:
+      operationId: createTransaction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransactionInput'
+      responses:
+        '201':
+          description: Created transaction
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transaction'
+        '400':
+          description: Account is not a transactable type
+  /transactions/{id}:
+    put:
+      operationId: updateTransaction
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransactionInput'
+      responses:
+        '200':
+          description: Updated transaction
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transaction'
+        '404':
+          description: Transaction not found
+    delete:
+      operationId: deleteTransaction
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Transaction deleted
+        '404':
+          description: Transaction not found
+  /spending/summary:
+    get:
+      operationId: getSpendingSummary
+      parameters:
+        - name: year
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: month
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Spending summary for the given month
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SpendingSummary'
 
 components:
   schemas:
@@ -674,3 +772,95 @@ components:
         savings_rate:
           type: number
           format: double
+    TransactionInput:
+      type: object
+      required:
+        - amount
+        - account_id
+        - posted_date
+      properties:
+        amount:
+          type: number
+          format: double
+        description:
+          type: string
+          nullable: true
+        category_id:
+          type: integer
+          nullable: true
+        account_id:
+          type: integer
+        posted_date:
+          type: string
+          format: date-time
+    Transaction:
+      allOf:
+        - $ref: '#/components/schemas/TransactionInput'
+        - type: object
+          required:
+            - id
+            - classification
+            - status
+          properties:
+            id:
+              type: integer
+            classification:
+              type: string
+              enum: [discretionary, recurring_fulfillment, transfer, income]
+            status:
+              type: string
+              enum: [provisional, confirmed]
+    DailySpendingPoint:
+      type: object
+      required:
+        - date
+        - amount
+      properties:
+        date:
+          type: string
+          format: date-time
+        amount:
+          type: number
+          format: double
+    SpendingSummary:
+      type: object
+      required:
+        - available
+        - spent_so_far
+        - remaining
+        - days_in_month
+        - days_elapsed
+        - days_remaining
+        - target_daily_average
+        - actual_daily_average
+        - safe_to_spend_per_day
+        - daily_spending
+      properties:
+        available:
+          type: number
+          format: double
+        spent_so_far:
+          type: number
+          format: double
+        remaining:
+          type: number
+          format: double
+        days_in_month:
+          type: integer
+        days_elapsed:
+          type: integer
+        days_remaining:
+          type: integer
+        target_daily_average:
+          type: number
+          format: double
+        actual_daily_average:
+          type: number
+          format: double
+        safe_to_spend_per_day:
+          type: number
+          format: double
+        daily_spending:
+          type: array
+          items:
+            $ref: '#/components/schemas/DailySpendingPoint'

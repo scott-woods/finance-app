@@ -124,22 +124,22 @@ func (e RecurringFrequency) Valid() bool {
 
 // Defines values for RecurringInstanceStatus.
 const (
-	Confirmed RecurringInstanceStatus = "confirmed"
-	Estimated RecurringInstanceStatus = "estimated"
-	Paid      RecurringInstanceStatus = "paid"
-	Upcoming  RecurringInstanceStatus = "upcoming"
+	RecurringInstanceStatusConfirmed RecurringInstanceStatus = "confirmed"
+	RecurringInstanceStatusEstimated RecurringInstanceStatus = "estimated"
+	RecurringInstanceStatusPaid      RecurringInstanceStatus = "paid"
+	RecurringInstanceStatusUpcoming  RecurringInstanceStatus = "upcoming"
 )
 
 // Valid indicates whether the value is a known member of the RecurringInstanceStatus enum.
 func (e RecurringInstanceStatus) Valid() bool {
 	switch e {
-	case Confirmed:
+	case RecurringInstanceStatusConfirmed:
 		return true
-	case Estimated:
+	case RecurringInstanceStatusEstimated:
 		return true
-	case Paid:
+	case RecurringInstanceStatusPaid:
 		return true
-	case Upcoming:
+	case RecurringInstanceStatusUpcoming:
 		return true
 	default:
 		return false
@@ -164,6 +164,48 @@ func (e RecurringItemKind) Valid() bool {
 	case RecurringItemKindInvestmentContribution:
 		return true
 	case RecurringItemKindTransfer:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TransactionClassification.
+const (
+	Discretionary        TransactionClassification = "discretionary"
+	Income               TransactionClassification = "income"
+	RecurringFulfillment TransactionClassification = "recurring_fulfillment"
+	Transfer             TransactionClassification = "transfer"
+)
+
+// Valid indicates whether the value is a known member of the TransactionClassification enum.
+func (e TransactionClassification) Valid() bool {
+	switch e {
+	case Discretionary:
+		return true
+	case Income:
+		return true
+	case RecurringFulfillment:
+		return true
+	case Transfer:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TransactionStatus.
+const (
+	TransactionStatusConfirmed   TransactionStatus = "confirmed"
+	TransactionStatusProvisional TransactionStatus = "provisional"
+)
+
+// Valid indicates whether the value is a known member of the TransactionStatus enum.
+func (e TransactionStatus) Valid() bool {
+	switch e {
+	case TransactionStatusConfirmed:
+		return true
+	case TransactionStatusProvisional:
 		return true
 	default:
 		return false
@@ -242,6 +284,12 @@ type CategoryInput struct {
 
 // CategoryKind defines model for CategoryKind.
 type CategoryKind string
+
+// DailySpendingPoint defines model for DailySpendingPoint.
+type DailySpendingPoint struct {
+	Amount float64   `json:"amount"`
+	Date   time.Time `json:"date"`
+}
 
 // NetWorthSummary defines model for NetWorthSummary.
 type NetWorthSummary struct {
@@ -328,8 +376,61 @@ type RecurringSummary struct {
 	TotalInvestmentsPreTax  float64 `json:"total_investments_pre_tax"`
 }
 
+// SpendingSummary defines model for SpendingSummary.
+type SpendingSummary struct {
+	ActualDailyAverage float64              `json:"actual_daily_average"`
+	Available          float64              `json:"available"`
+	DailySpending      []DailySpendingPoint `json:"daily_spending"`
+	DaysElapsed        int                  `json:"days_elapsed"`
+	DaysInMonth        int                  `json:"days_in_month"`
+	DaysRemaining      int                  `json:"days_remaining"`
+	Remaining          float64              `json:"remaining"`
+	SafeToSpendPerDay  float64              `json:"safe_to_spend_per_day"`
+	SpentSoFar         float64              `json:"spent_so_far"`
+	TargetDailyAverage float64              `json:"target_daily_average"`
+}
+
+// Transaction defines model for Transaction.
+type Transaction struct {
+	AccountId      int                       `json:"account_id"`
+	Amount         float64                   `json:"amount"`
+	CategoryId     *int                      `json:"category_id,omitempty"`
+	Classification TransactionClassification `json:"classification"`
+	Description    *string                   `json:"description,omitempty"`
+	Id             int                       `json:"id"`
+	PostedDate     time.Time                 `json:"posted_date"`
+	Status         TransactionStatus         `json:"status"`
+}
+
+// TransactionClassification defines model for Transaction.Classification.
+type TransactionClassification string
+
+// TransactionStatus defines model for Transaction.Status.
+type TransactionStatus string
+
+// TransactionInput defines model for TransactionInput.
+type TransactionInput struct {
+	AccountId   int       `json:"account_id"`
+	Amount      float64   `json:"amount"`
+	CategoryId  *int      `json:"category_id,omitempty"`
+	Description *string   `json:"description,omitempty"`
+	PostedDate  time.Time `json:"posted_date"`
+}
+
 // ListRecurringInstancesParams defines parameters for ListRecurringInstances.
 type ListRecurringInstancesParams struct {
+	Year  int `form:"year" json:"year"`
+	Month int `form:"month" json:"month"`
+}
+
+// GetSpendingSummaryParams defines parameters for GetSpendingSummary.
+type GetSpendingSummaryParams struct {
+	Year  int `form:"year" json:"year"`
+	Month int `form:"month" json:"month"`
+}
+
+// ListTransactionsParams defines parameters for ListTransactions.
+type ListTransactionsParams struct {
 	Year  int `form:"year" json:"year"`
 	Month int `form:"month" json:"month"`
 }
@@ -357,6 +458,12 @@ type CreateRecurringItemJSONRequestBody = RecurringItemInput
 
 // UpdateRecurringItemJSONRequestBody defines body for UpdateRecurringItem for application/json ContentType.
 type UpdateRecurringItemJSONRequestBody = RecurringItemInput
+
+// CreateTransactionJSONRequestBody defines body for CreateTransaction for application/json ContentType.
+type CreateTransactionJSONRequestBody = TransactionInput
+
+// UpdateTransactionJSONRequestBody defines body for UpdateTransaction for application/json ContentType.
+type UpdateTransactionJSONRequestBody = TransactionInput
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
@@ -420,6 +527,21 @@ type ServerInterface interface {
 
 	// (PUT /recurring-items/{id})
 	UpdateRecurringItem(w http.ResponseWriter, r *http.Request, id int)
+
+	// (GET /spending/summary)
+	GetSpendingSummary(w http.ResponseWriter, r *http.Request, params GetSpendingSummaryParams)
+
+	// (GET /transactions)
+	ListTransactions(w http.ResponseWriter, r *http.Request, params ListTransactionsParams)
+
+	// (POST /transactions)
+	CreateTransaction(w http.ResponseWriter, r *http.Request)
+
+	// (DELETE /transactions/{id})
+	DeleteTransaction(w http.ResponseWriter, r *http.Request, id int)
+
+	// (PUT /transactions/{id})
+	UpdateTransaction(w http.ResponseWriter, r *http.Request, id int)
 }
 
 // ServerInterfaceWrapper converts contexts to parameters.
@@ -881,6 +1003,164 @@ func (siw *ServerInterfaceWrapper) UpdateRecurringItem(w http.ResponseWriter, r 
 	handler.ServeHTTP(w, r)
 }
 
+// GetSpendingSummary operation middleware
+func (siw *ServerInterfaceWrapper) GetSpendingSummary(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetSpendingSummaryParams
+
+	// ------------- Required query parameter "year" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "year", r.URL.Query(), &params.Year, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "year"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "year", Err: err})
+		}
+		return
+	}
+
+	// ------------- Required query parameter "month" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "month", r.URL.Query(), &params.Month, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "month"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "month", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetSpendingSummary(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListTransactions operation middleware
+func (siw *ServerInterfaceWrapper) ListTransactions(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListTransactionsParams
+
+	// ------------- Required query parameter "year" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "year", r.URL.Query(), &params.Year, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "year"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "year", Err: err})
+		}
+		return
+	}
+
+	// ------------- Required query parameter "month" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "month", r.URL.Query(), &params.Month, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "month"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "month", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListTransactions(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateTransaction operation middleware
+func (siw *ServerInterfaceWrapper) CreateTransaction(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateTransaction(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteTransaction operation middleware
+func (siw *ServerInterfaceWrapper) DeleteTransaction(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id int
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteTransaction(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateTransaction operation middleware
+func (siw *ServerInterfaceWrapper) UpdateTransaction(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id int
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateTransaction(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 type UnescapedCookieParamError struct {
 	ParamName string
 	Err       error
@@ -1021,6 +1301,11 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/recurring-items/summary", wrapper.GetRecurringSummary)
 	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/recurring-items/{id}", wrapper.DeleteRecurringItem)
 	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/recurring-items/{id}", wrapper.UpdateRecurringItem)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/spending/summary", wrapper.GetSpendingSummary)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/transactions", wrapper.ListTransactions)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/transactions", wrapper.CreateTransaction)
+	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/transactions/{id}", wrapper.DeleteTransaction)
+	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/transactions/{id}", wrapper.UpdateTransaction)
 
 	return m
 }
@@ -1520,6 +1805,135 @@ func (response UpdateRecurringItem404Response) VisitUpdateRecurringItemResponse(
 	return nil
 }
 
+type GetSpendingSummaryRequestObject struct {
+	Params GetSpendingSummaryParams
+}
+
+type GetSpendingSummaryResponseObject interface {
+	VisitGetSpendingSummaryResponse(w http.ResponseWriter) error
+}
+
+type GetSpendingSummary200JSONResponse SpendingSummary
+
+func (response GetSpendingSummary200JSONResponse) VisitGetSpendingSummaryResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListTransactionsRequestObject struct {
+	Params ListTransactionsParams
+}
+
+type ListTransactionsResponseObject interface {
+	VisitListTransactionsResponse(w http.ResponseWriter) error
+}
+
+type ListTransactions200JSONResponse []Transaction
+
+func (response ListTransactions200JSONResponse) VisitListTransactionsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateTransactionRequestObject struct {
+	Body *CreateTransactionJSONRequestBody
+}
+
+type CreateTransactionResponseObject interface {
+	VisitCreateTransactionResponse(w http.ResponseWriter) error
+}
+
+type CreateTransaction201JSONResponse Transaction
+
+func (response CreateTransaction201JSONResponse) VisitCreateTransactionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateTransaction400Response struct {
+}
+
+func (response CreateTransaction400Response) VisitCreateTransactionResponse(w http.ResponseWriter) error {
+	w.WriteHeader(400)
+	return nil
+}
+
+type DeleteTransactionRequestObject struct {
+	Id int `json:"id"`
+}
+
+type DeleteTransactionResponseObject interface {
+	VisitDeleteTransactionResponse(w http.ResponseWriter) error
+}
+
+type DeleteTransaction204Response struct {
+}
+
+func (response DeleteTransaction204Response) VisitDeleteTransactionResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type DeleteTransaction404Response struct {
+}
+
+func (response DeleteTransaction404Response) VisitDeleteTransactionResponse(w http.ResponseWriter) error {
+	w.WriteHeader(404)
+	return nil
+}
+
+type UpdateTransactionRequestObject struct {
+	Id   int `json:"id"`
+	Body *UpdateTransactionJSONRequestBody
+}
+
+type UpdateTransactionResponseObject interface {
+	VisitUpdateTransactionResponse(w http.ResponseWriter) error
+}
+
+type UpdateTransaction200JSONResponse Transaction
+
+func (response UpdateTransaction200JSONResponse) VisitUpdateTransactionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateTransaction404Response struct {
+}
+
+func (response UpdateTransaction404Response) VisitUpdateTransactionResponse(w http.ResponseWriter) error {
+	w.WriteHeader(404)
+	return nil
+}
+
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
 
@@ -1582,6 +1996,21 @@ type StrictServerInterface interface {
 
 	// (PUT /recurring-items/{id})
 	UpdateRecurringItem(ctx context.Context, request UpdateRecurringItemRequestObject) (UpdateRecurringItemResponseObject, error)
+
+	// (GET /spending/summary)
+	GetSpendingSummary(ctx context.Context, request GetSpendingSummaryRequestObject) (GetSpendingSummaryResponseObject, error)
+
+	// (GET /transactions)
+	ListTransactions(ctx context.Context, request ListTransactionsRequestObject) (ListTransactionsResponseObject, error)
+
+	// (POST /transactions)
+	CreateTransaction(ctx context.Context, request CreateTransactionRequestObject) (CreateTransactionResponseObject, error)
+
+	// (DELETE /transactions/{id})
+	DeleteTransaction(ctx context.Context, request DeleteTransactionRequestObject) (DeleteTransactionResponseObject, error)
+
+	// (PUT /transactions/{id})
+	UpdateTransaction(ctx context.Context, request UpdateTransactionRequestObject) (UpdateTransactionResponseObject, error)
 }
 
 type StrictHandlerFunc func(ctx context.Context, w http.ResponseWriter, r *http.Request, request any) (any, error)
@@ -2166,6 +2595,148 @@ func (sh *strictHandler) UpdateRecurringItem(w http.ResponseWriter, r *http.Requ
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(UpdateRecurringItemResponseObject); ok {
 		if err := validResponse.VisitUpdateRecurringItemResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetSpendingSummary operation middleware
+func (sh *strictHandler) GetSpendingSummary(w http.ResponseWriter, r *http.Request, params GetSpendingSummaryParams) {
+	var request GetSpendingSummaryRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetSpendingSummary(ctx, request.(GetSpendingSummaryRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetSpendingSummary")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetSpendingSummaryResponseObject); ok {
+		if err := validResponse.VisitGetSpendingSummaryResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListTransactions operation middleware
+func (sh *strictHandler) ListTransactions(w http.ResponseWriter, r *http.Request, params ListTransactionsParams) {
+	var request ListTransactionsRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListTransactions(ctx, request.(ListTransactionsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListTransactions")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListTransactionsResponseObject); ok {
+		if err := validResponse.VisitListTransactionsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CreateTransaction operation middleware
+func (sh *strictHandler) CreateTransaction(w http.ResponseWriter, r *http.Request) {
+	var request CreateTransactionRequestObject
+
+	var body CreateTransactionJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateTransaction(ctx, request.(CreateTransactionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateTransaction")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreateTransactionResponseObject); ok {
+		if err := validResponse.VisitCreateTransactionResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// DeleteTransaction operation middleware
+func (sh *strictHandler) DeleteTransaction(w http.ResponseWriter, r *http.Request, id int) {
+	var request DeleteTransactionRequestObject
+
+	request.Id = id
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteTransaction(ctx, request.(DeleteTransactionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteTransaction")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(DeleteTransactionResponseObject); ok {
+		if err := validResponse.VisitDeleteTransactionResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// UpdateTransaction operation middleware
+func (sh *strictHandler) UpdateTransaction(w http.ResponseWriter, r *http.Request, id int) {
+	var request UpdateTransactionRequestObject
+
+	request.Id = id
+
+	var body UpdateTransactionJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateTransaction(ctx, request.(UpdateTransactionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateTransaction")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(UpdateTransactionResponseObject); ok {
+		if err := validResponse.VisitUpdateTransactionResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

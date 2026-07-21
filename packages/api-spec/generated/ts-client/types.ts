@@ -196,6 +196,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/transactions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listTransactions"];
+        put?: never;
+        post: operations["createTransaction"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/transactions/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["updateTransaction"];
+        post?: never;
+        delete: operations["deleteTransaction"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/spending/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getSpendingSummary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -334,6 +382,46 @@ export interface components {
             effective_income: number;
             /** Format: double */
             savings_rate: number;
+        };
+        TransactionInput: {
+            /** Format: double */
+            amount: number;
+            description?: string | null;
+            category_id?: number | null;
+            account_id: number;
+            /** Format: date-time */
+            posted_date: string;
+        };
+        Transaction: components["schemas"]["TransactionInput"] & {
+            id: number;
+            /** @enum {string} */
+            classification: "discretionary" | "recurring_fulfillment" | "transfer" | "income";
+            /** @enum {string} */
+            status: "provisional" | "confirmed";
+        };
+        DailySpendingPoint: {
+            /** Format: date-time */
+            date: string;
+            /** Format: double */
+            amount: number;
+        };
+        SpendingSummary: {
+            /** Format: double */
+            available: number;
+            /** Format: double */
+            spent_so_far: number;
+            /** Format: double */
+            remaining: number;
+            days_in_month: number;
+            days_elapsed: number;
+            days_remaining: number;
+            /** Format: double */
+            target_daily_average: number;
+            /** Format: double */
+            actual_daily_average: number;
+            /** Format: double */
+            safe_to_spend_per_day: number;
+            daily_spending: components["schemas"]["DailySpendingPoint"][];
         };
     };
     responses: never;
@@ -854,6 +942,143 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RecurringSummary"];
+                };
+            };
+        };
+    };
+    listTransactions: {
+        parameters: {
+            query: {
+                year: number;
+                month: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Transactions for the given month */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Transaction"][];
+                };
+            };
+        };
+    };
+    createTransaction: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TransactionInput"];
+            };
+        };
+        responses: {
+            /** @description Created transaction */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Transaction"];
+                };
+            };
+            /** @description Account is not a transactable type */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    updateTransaction: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TransactionInput"];
+            };
+        };
+        responses: {
+            /** @description Updated transaction */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Transaction"];
+                };
+            };
+            /** @description Transaction not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    deleteTransaction: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Transaction deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Transaction not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getSpendingSummary: {
+        parameters: {
+            query: {
+                year: number;
+                month: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Spending summary for the given month */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SpendingSummary"];
                 };
             };
         };
