@@ -376,6 +376,13 @@ type RecurringSummary struct {
 	TotalInvestmentsPreTax  float64 `json:"total_investments_pre_tax"`
 }
 
+// SimplefinSyncResult defines model for SimplefinSyncResult.
+type SimplefinSyncResult struct {
+	AccountsSynced       int `json:"accounts_synced"`
+	TransactionsImported int `json:"transactions_imported"`
+	TransactionsSkipped  int `json:"transactions_skipped"`
+}
+
 // SpendingSummary defines model for SpendingSummary.
 type SpendingSummary struct {
 	ActualDailyAverage float64              `json:"actual_daily_average"`
@@ -527,6 +534,9 @@ type ServerInterface interface {
 
 	// (PUT /recurring-items/{id})
 	UpdateRecurringItem(w http.ResponseWriter, r *http.Request, id int)
+
+	// (POST /simplefin/sync)
+	SyncSimplefin(w http.ResponseWriter, r *http.Request)
 
 	// (GET /spending/summary)
 	GetSpendingSummary(w http.ResponseWriter, r *http.Request, params GetSpendingSummaryParams)
@@ -1003,6 +1013,20 @@ func (siw *ServerInterfaceWrapper) UpdateRecurringItem(w http.ResponseWriter, r 
 	handler.ServeHTTP(w, r)
 }
 
+// SyncSimplefin operation middleware
+func (siw *ServerInterfaceWrapper) SyncSimplefin(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SyncSimplefin(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetSpendingSummary operation middleware
 func (siw *ServerInterfaceWrapper) GetSpendingSummary(w http.ResponseWriter, r *http.Request) {
 
@@ -1301,6 +1325,7 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/recurring-items/summary", wrapper.GetRecurringSummary)
 	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/recurring-items/{id}", wrapper.DeleteRecurringItem)
 	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/recurring-items/{id}", wrapper.UpdateRecurringItem)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/simplefin/sync", wrapper.SyncSimplefin)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/spending/summary", wrapper.GetSpendingSummary)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/transactions", wrapper.ListTransactions)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/transactions", wrapper.CreateTransaction)
@@ -1805,6 +1830,27 @@ func (response UpdateRecurringItem404Response) VisitUpdateRecurringItemResponse(
 	return nil
 }
 
+type SyncSimplefinRequestObject struct {
+}
+
+type SyncSimplefinResponseObject interface {
+	VisitSyncSimplefinResponse(w http.ResponseWriter) error
+}
+
+type SyncSimplefin200JSONResponse SimplefinSyncResult
+
+func (response SyncSimplefin200JSONResponse) VisitSyncSimplefinResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type GetSpendingSummaryRequestObject struct {
 	Params GetSpendingSummaryParams
 }
@@ -1996,6 +2042,9 @@ type StrictServerInterface interface {
 
 	// (PUT /recurring-items/{id})
 	UpdateRecurringItem(ctx context.Context, request UpdateRecurringItemRequestObject) (UpdateRecurringItemResponseObject, error)
+
+	// (POST /simplefin/sync)
+	SyncSimplefin(ctx context.Context, request SyncSimplefinRequestObject) (SyncSimplefinResponseObject, error)
 
 	// (GET /spending/summary)
 	GetSpendingSummary(ctx context.Context, request GetSpendingSummaryRequestObject) (GetSpendingSummaryResponseObject, error)
@@ -2595,6 +2644,30 @@ func (sh *strictHandler) UpdateRecurringItem(w http.ResponseWriter, r *http.Requ
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(UpdateRecurringItemResponseObject); ok {
 		if err := validResponse.VisitUpdateRecurringItemResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// SyncSimplefin operation middleware
+func (sh *strictHandler) SyncSimplefin(w http.ResponseWriter, r *http.Request) {
+	var request SyncSimplefinRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.SyncSimplefin(ctx, request.(SyncSimplefinRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "SyncSimplefin")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(SyncSimplefinResponseObject); ok {
+		if err := validResponse.VisitSyncSimplefinResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

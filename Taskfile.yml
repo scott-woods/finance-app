@@ -88,3 +88,15 @@ tasks:
     dir: apps/api
     cmds:
       - go run ./cmd/seedcategories
+
+  simplefin:claim:
+    desc: One-time claim of a SimpleFin setup token into an access URL
+    dir: apps/api
+    cmds:
+      - go run ./cmd/simplefinclaim
+  
+  simplefin:list:
+    desc: List SimpleFin accounts and a few sample transactions for inspection
+    dir: apps/api
+    cmds:
+      - go run ./cmd/simplefinlist

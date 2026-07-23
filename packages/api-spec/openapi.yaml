@@ -440,6 +440,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SpendingSummary'
+  /simplefin/sync:
+    post:
+      operationId: syncSimplefin
+      responses:
+        '200':
+          description: Sync result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SimplefinSyncResult'
 
 components:
   schemas:
@@ -864,3 +874,16 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/DailySpendingPoint'
+    SimplefinSyncResult:
+      type: object
+      required:
+        - accounts_synced
+        - transactions_imported
+        - transactions_skipped
+      properties:
+        accounts_synced:
+          type: integer
+        transactions_imported:
+          type: integer
+        transactions_skipped:
+          type: integer

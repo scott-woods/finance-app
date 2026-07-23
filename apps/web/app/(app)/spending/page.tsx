@@ -2,7 +2,7 @@
 
 import { useAuth } from '@clerk/nextjs'
 import { useEffect, useState, useCallback } from 'react'
-import { ChevronLeft, ChevronRight, Trash2 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, RefreshCw, Trash2 } from 'lucide-react'
 import { BarChart, Bar, XAxis, CartesianGrid, ReferenceLine } from 'recharts'
 import { createApiClient } from '@/lib/api'
 import { useCategories } from '@/lib/use-categories'
@@ -31,6 +31,8 @@ export default function SpendingPage() {
     const now = new Date()
     return { year: now.getFullYear(), month: now.getMonth() + 1 }
   })
+  const [syncing, setSyncing] = useState(false)
+  const [syncResult, setSyncResult] = useState<string | null>(null)
 
   const refresh = useCallback(async () => {
     const token = await getToken()
@@ -89,6 +91,21 @@ export default function SpendingPage() {
     })
     if (!grouped.has(key)) grouped.set(key, [])
     grouped.get(key)!.push(tx)
+  }
+
+  async function handleSync() {
+    setSyncing(true)
+    setSyncResult(null)
+    const token = await getToken()
+    const client = createApiClient(token)
+    const { data, error } = await client.POST('/simplefin/sync')
+    if (!error && data) {
+      setSyncResult(`Imported ${data.transactions_imported}, skipped ${data.transactions_skipped}`)
+      refresh()
+    } else {
+      setSyncResult('Sync failed — check the server logs')
+    }
+    setSyncing(false)
   }
 
   return (
@@ -159,7 +176,14 @@ export default function SpendingPage() {
         <div className="bg-card border border-border rounded-xl p-6">
           <div className="flex items-center justify-between mb-4">
             <p className="text-text-muted text-sm uppercase tracking-wide">Transactions</p>
-            <TransactionForm mode="create" onSaved={refresh} />
+            <div className="flex items-center gap-2">
+              {syncResult && <p className="text-xs text-text-muted">{syncResult}</p>}
+              <Button variant="outline" size="sm" onClick={handleSync} disabled={syncing}>
+                <RefreshCw size={14} className={`mr-1 ${syncing ? 'animate-spin' : ''}`} />
+                {syncing ? 'Syncing...' : 'Sync Amex'}
+              </Button>
+              <TransactionForm mode="create" onSaved={refresh} />
+            </div>
           </div>
           <div className="max-h-[420px] overflow-y-auto flex flex-col gap-4">
             {Array.from(grouped.entries()).map(([date, txs]) => (
