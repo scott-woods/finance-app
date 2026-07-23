@@ -26,7 +26,7 @@ export function AccountRow({
       </div>
       <div className="min-w-0 flex-1">
         <p className="text-text-primary text-base font-medium truncate">
-          {account.name}s
+          {account.name}
         </p>
         {account.balance != null ? (
           <p className="text-xs text-text-muted">

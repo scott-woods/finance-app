@@ -7,9 +7,11 @@ import { ASSET_TYPES, DEBT_TYPES } from '@/types/accounts'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '@/components/ui/chart'
-import { LineChart, Line, XAxis, CartesianGrid } from 'recharts'
+import { LineChart, Line, XAxis, CartesianGrid, YAxis } from 'recharts'
 import { AccountColumn } from './_components/account-column'
 import { Skeleton } from '@/components/ui/skeleton'
+import { TrendingUp, Wallet } from 'lucide-react'
+import { CardSectionHeader } from '@/components/card-section-header'
 
 const chartConfig = {
   net_worth: { label: 'Net Worth', color: 'var(--color-accent)' },
@@ -34,23 +36,17 @@ export default function AccountsPage() {
     <div className="flex flex-col gap-6">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-        <Card className="flex flex-col justify-center p-6">
+        <Card className="p-6">
           <CardContent className="p-0">
-            <p className="text-text-muted text-sm uppercase tracking-wide">Net Worth</p>
-            <h1 className="font-display text-4xl text-text-primary mt-1">
+            <CardSectionHeader icon={Wallet} title="Net Worth" />
+            <h1 className="font-display text-5xl text-text-primary mt-2">
               {currency(summary.net_worth)}
             </h1>
-            <div className="flex gap-3 mt-3">
-              <Badge
-                variant="outline"
-                className="text-sm text-positive bg-positive/10 border-transparent rounded-full px-3 py-1"
-              >
+            <div className="flex gap-3 mt-4">
+              <Badge variant="outline" className="text-base text-positive bg-positive/10 border-transparent rounded-full px-4 py-1.5">
                 Assets: {currency(summary.total_assets)}
               </Badge>
-              <Badge
-                variant="outline"
-                className="text-sm text-negative bg-negative/10 border-transparent rounded-full px-3 py-1"
-              >
+              <Badge variant="outline" className="text-base text-negative bg-negative/10 border-transparent rounded-full px-4 py-1.5">
                 Debts: {currency(summary.total_debts)}
               </Badge>
             </div>
@@ -59,16 +55,17 @@ export default function AccountsPage() {
 
         <Card className="p-6">
           <CardContent className="p-0">
-            <p className="text-text-muted text-sm uppercase tracking-wide mb-2">Trend</p>
+            <CardSectionHeader icon={TrendingUp} title="Trend" />
             {chartData.length < 2 ? (
-              <p className="text-text-muted text-sm">Not enough history yet to chart a trend.</p>
+              <p className="text-text-muted text-base py-8 text-center">Not enough history yet to chart a trend.</p>
             ) : (
-              <ChartContainer config={chartConfig} className="h-[140px] w-full">
+              <ChartContainer config={chartConfig} className="h-[220px] w-full">
                 <LineChart data={chartData}>
                   <CartesianGrid vertical={false} stroke="var(--color-border)" />
-                  <XAxis dataKey="date" tickLine={false} axisLine={false} fontSize={12} />
+                  <XAxis dataKey="date" tickLine={false} axisLine={false} fontSize={13} />
+                  <YAxis tickLine={false} axisLine={false} fontSize={13} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
                   <ChartTooltip content={<ChartTooltipContent />} />
-                  <Line dataKey="net_worth" stroke="var(--color-net_worth)" strokeWidth={2} dot={false} />
+                  <Line dataKey="net_worth" stroke="var(--color-net_worth)" strokeWidth={2} dot={{ r: 4, fill: 'var(--color-net_worth)', strokeWidth: 0 }} />
                 </LineChart>
               </ChartContainer>
             )}
@@ -76,7 +73,7 @@ export default function AccountsPage() {
         </Card>
       </div>
 
-      <div className="grid grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <AccountColumn title="Assets" groups={sortedAssetGroups} allowedTypes={ASSET_TYPES} isAsset={true} onSaved={refresh} />
         <AccountColumn title="Debts" groups={sortedDebtGroups} allowedTypes={DEBT_TYPES} isAsset={false} onSaved={refresh} />
       </div>

@@ -6,6 +6,8 @@ import type { AccountType, AccountTypeGroup } from "@/types/accounts"
 import { currency } from "@/lib/format"
 import { AccountRow } from "./account-row"
 import { ACCOUNT_TYPE_LABELS } from "@/lib/account-icons"
+import { CreditCard, Wallet } from "lucide-react"
+import { CardSectionHeader } from "@/components/card-section-header"
 
 export function AccountColumn({
   title,
@@ -22,10 +24,11 @@ export function AccountColumn({
 }) {
   return (
     <Card className="p-5">
-      <CardHeader className="flex flex-row items-center justify-between p-0 mb-4">
-        <h2 className="text-text-muted text-sm uppercase tracking-wide font-medium">{title}</h2>
-        <AccountForm mode="create" allowedTypes={allowedTypes} isAsset={isAsset} onSaved={onSaved} />
-      </CardHeader>
+      <CardSectionHeader
+        icon={isAsset ? Wallet : CreditCard} // or whatever fits
+        title={title}
+        action={<AccountForm mode="create" allowedTypes={allowedTypes} isAsset={isAsset} onSaved={onSaved} />}
+      />
 
       <CardContent className="p-0">
         {groups.length === 0 ? (
