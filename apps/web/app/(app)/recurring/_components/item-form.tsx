@@ -2,11 +2,20 @@
 
 import { useAuth } from '@clerk/nextjs'
 import { useEffect, useState } from 'react'
+import { Plus, Pencil } from 'lucide-react'
 import { createApiClient } from '@/lib/api'
 import { useCategories } from '@/hooks/use-categories'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import {
   Sheet,
   SheetContent,
@@ -24,14 +33,24 @@ type RecurringFrequency = components['schemas']['RecurringFrequency']
 type Account = components['schemas']['Account']
 
 const KINDS: RecurringItemKind[] = ['income', 'expense', 'investment_contribution', 'transfer']
+const KIND_LABELS: Record<RecurringItemKind, string> = {
+  income: 'Income',
+  expense: 'Expense',
+  investment_contribution: 'Investment Contribution',
+  transfer: 'Transfer',
+}
 const FREQUENCIES: RecurringFrequency[] = ['weekly', 'biweekly', 'monthly', 'annual']
 
 export function RecurringItemForm({
   mode,
+  trigger = mode === 'create' ? 'button' : 'icon',
+  createLabel = 'Add Item',
   item,
   onSaved,
 }: {
   mode: 'create' | 'edit'
+  trigger?: 'button' | 'icon'
+  createLabel?: string
   item?: RecurringItem
   onSaved: () => void
 }) {
@@ -39,6 +58,8 @@ export function RecurringItemForm({
   const categories = useCategories()
   const [accounts, setAccounts] = useState<Account[]>([])
   const [open, setOpen] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const [kind, setKind] = useState<RecurringItemKind>(item?.kind ?? 'expense')
   const [name, setName] = useState(item?.name ?? '')
@@ -64,6 +85,15 @@ export function RecurringItemForm({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+
+    if (mode === 'edit' && !item) {
+      setError('Missing item to update.')
+      return
+    }
+
+    setSubmitting(true)
+    setError(null)
+
     const token = await getToken()
     const client = createApiClient(token)
 
@@ -80,10 +110,15 @@ export function RecurringItemForm({
       pre_tax: kind === 'investment_contribution' ? preTax : false,
     }
 
-    if (mode === 'create') {
-      await client.POST('/recurring-items', { body })
-    } else if (item) {
-      await client.PUT('/recurring-items/{id}', { params: { path: { id: item.id } }, body })
+    const res = mode === 'create'
+      ? await client.POST('/recurring-items', { body })
+      : await client.PUT('/recurring-items/{id}', { params: { path: { id: item!.id } }, body })
+
+    setSubmitting(false)
+
+    if (res.error) {
+      setError('Something went wrong saving this item. Please try again.')
+      return
     }
 
     setOpen(false)
@@ -92,9 +127,23 @@ export function RecurringItemForm({
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger render={<Button variant={mode === 'create' ? 'default' : 'outline'} size="sm" />}>
-        {mode === 'create' ? 'Add Recurring Item' : 'Edit'}
-      </SheetTrigger>
+      {trigger === 'icon' ? (
+        <SheetTrigger render={<Button variant="ghost" size="icon" className="text-text-muted hover:text-accent" />}>
+          <Pencil size={16} />
+        </SheetTrigger>
+      ) : (
+        <SheetTrigger render={<Button variant={mode === 'create' ? 'default' : 'outline'} size="sm" className="gap-1.5" />}>
+          {mode === 'create' ? (
+            <>
+              <Plus size={14} /> {createLabel}
+            </>
+          ) : (
+            <>
+              <Pencil size={14} /> Edit
+            </>
+          )}
+        </SheetTrigger>
+      )}
       <SheetContent>
         <form onSubmit={handleSubmit} className="flex flex-col h-full">
           <SheetHeader>
@@ -103,40 +152,48 @@ export function RecurringItemForm({
           <div className="flex flex-col gap-4 px-4 flex-1 overflow-y-auto">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="kind">Type</Label>
-              <select
-                id="kind"
-                value={kind}
-                onChange={(e) => setKind(e.target.value as RecurringItemKind)}
-                className="border border-border bg-background rounded-md px-3 py-2 text-sm"
-              >
-                {KINDS.map((k) => (
-                  <option key={k} value={k}>{k.replace('_', ' ')}</option>
-                ))}
-              </select>
+              <Select value={kind} onValueChange={(v) => setKind(v as RecurringItemKind)}>
+                <SelectTrigger id="kind">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {KINDS.map((k) => (
+                    <SelectItem key={k} value={k}>
+                      {KIND_LABELS[k]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
+
             {kind === 'investment_contribution' && (
               <div className="flex items-center gap-2">
-                <input id="preTax" type="checkbox" checked={preTax} onChange={(e) => setPreTax(e.target.checked)} />
+                <Checkbox id="preTax" checked={preTax} onCheckedChange={(checked) => setPreTax(checked === true)} />
                 <Label htmlFor="preTax">Pre-tax (deducted before paycheck, e.g. 401k)</Label>
               </div>
             )}
+
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="name">Name</Label>
               <Input id="name" value={name} onChange={(e) => setName(e.target.value)} required />
             </div>
+
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="frequency">Frequency</Label>
-              <select
-                id="frequency"
-                value={frequency}
-                onChange={(e) => setFrequency(e.target.value as RecurringFrequency)}
-                className="border border-border bg-background rounded-md px-3 py-2 text-sm"
-              >
-                {FREQUENCIES.map((f) => (
-                  <option key={f} value={f}>{f}</option>
-                ))}
-              </select>
+              <Select value={frequency} onValueChange={(v) => setFrequency(v as RecurringFrequency)}>
+                <SelectTrigger id="frequency">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {FREQUENCIES.map((f) => (
+                    <SelectItem key={f} value={f} className="capitalize">
+                      {f}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
+
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="amount">Estimated amount</Label>
               <Input
@@ -148,6 +205,7 @@ export function RecurringItemForm({
                 required
               />
             </div>
+
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="startDate">Start date</Label>
               <Input
@@ -158,41 +216,52 @@ export function RecurringItemForm({
                 required
               />
             </div>
+
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="endDate">End date (optional)</Label>
               <Input id="endDate" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
             </div>
+
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="category">Category</Label>
-              <select
-                id="category"
-                value={categoryId}
-                onChange={(e) => setCategoryId(e.target.value)}
-                className="border border-border bg-background rounded-md px-3 py-2 text-sm"
-              >
-                <option value="">None</option>
-                {categories.map((c) => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </select>
+              <Select value={categoryId || 'none'} onValueChange={(v) => setCategoryId(v && v !== 'none' ? v : '')}>
+                <SelectTrigger id="category">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">None</SelectItem>
+                  {categories.map((c) => (
+                    <SelectItem key={c.id} value={c.id.toString()}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
+
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="account">Account</Label>
-              <select
-                id="account"
-                value={accountId}
-                onChange={(e) => setAccountId(e.target.value)}
-                className="border border-border bg-background rounded-md px-3 py-2 text-sm"
-              >
-                <option value="">None</option>
-                {accounts.map((a) => (
-                  <option key={a.id} value={a.id}>{a.name}</option>
-                ))}
-              </select>
+              <Select value={accountId || 'none'} onValueChange={(v) => setAccountId(v && v !== 'none' ? v : '')}>
+                <SelectTrigger id="account">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">None</SelectItem>
+                  {accounts.map((a) => (
+                    <SelectItem key={a.id} value={a.id.toString()}>
+                      {a.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
+
+            {error && <p className="text-sm text-negative">{error}</p>}
           </div>
           <SheetFooter>
-            <Button type="submit">Save</Button>
+            <Button type="submit" disabled={submitting}>
+              {submitting ? 'Saving...' : 'Save'}
+            </Button>
             <SheetClose render={<Button type="button" variant="outline" />}>Cancel</SheetClose>
           </SheetFooter>
         </form>

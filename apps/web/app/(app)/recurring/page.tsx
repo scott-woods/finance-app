@@ -2,27 +2,20 @@
 
 import { useAuth } from '@clerk/nextjs'
 import { useEffect, useState, useCallback } from 'react'
-import { Trash2 } from 'lucide-react'
+import { Wallet, TrendingUp, CreditCard, PieChart } from 'lucide-react'
 import { createApiClient } from '@/lib/api'
 import { useCategories } from '@/hooks/use-categories'
-import { Button } from '@/components/ui/button'
+import { currency } from '@/lib/format'
+import { monthlyEquivalent } from '@/lib/recurring'
+import { Card, CardContent } from '@/components/ui/card'
+import { CardSectionHeader } from '@/components/card-section-header'
+import { Skeleton } from '@/components/ui/skeleton'
+import { ItemListCard } from './_components/item-list-card'
+import { ItemRow } from './_components/item-row'
 import type { components } from '@finance-app/api-spec'
-import { RecurringItemForm } from './item-form'
 
 type RecurringItem = components['schemas']['RecurringItem']
 type RecurringSummary = components['schemas']['RecurringSummary']
-
-const currency = (n: number) =>
-  n.toLocaleString('en-US', { style: 'currency', currency: 'USD' })
-
-const monthlyEquivalent = (amount: number, freq: string) => {
-  switch (freq) {
-    case 'weekly': return amount * 4.33
-    case 'biweekly': return amount * 2.17
-    case 'annual': return amount / 12
-    default: return amount
-  }
-}
 
 export default function RecurringPage() {
   const { getToken } = useAuth()
@@ -50,11 +43,14 @@ export default function RecurringPage() {
   async function handleDelete(id: number) {
     const token = await getToken()
     const client = createApiClient(token)
-    await client.DELETE('/recurring-items/{id}', { params: { path: { id } } })
+    const res = await client.DELETE('/recurring-items/{id}', { params: { path: { id } } })
+    if (res.error) return // TODO: surface an error to the user
     refresh()
   }
 
-  if (loading || !summary) return <p className="text-text-muted">Loading...</p>
+  if (loading || !summary) {
+    return <Skeleton className="h-64 w-full rounded-xl" />
+  }
 
   const income = items.filter((i) => i.kind === 'income').sort((a, b) => b.estimated_amount - a.estimated_amount)
   const investmentsPre = items
@@ -87,141 +83,100 @@ export default function RecurringPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="bg-card border border-border rounded-xl p-6">
-        <p className="text-text-muted text-sm uppercase tracking-wide">Disposable Income</p>
-        <h1 className="font-display text-4xl text-text-primary mt-1 mb-4">
-          {currency(summary.disposable_income)}
-        </h1>
-        <div className="flex h-2.5 rounded-full overflow-hidden mb-2">
-          <div className="bg-negative" style={{ width: `${expensePct}%` }} />
-          <div className="bg-positive" style={{ width: `${investPct}%` }} />
-          <div className="bg-accent" style={{ width: `${disposablePct}%` }} />
-        </div>
-        <div className="flex gap-4 text-sm text-text-muted">
-          <span><span className="text-negative">●</span> Expenses {expensePct.toFixed(0)}%</span>
-          <span><span className="text-positive">●</span> Investments {investPct.toFixed(0)}%</span>
-          <span><span className="text-accent">●</span> Disposable {disposablePct.toFixed(0)}%</span>
-        </div>
+      <Card className="p-6">
+        <CardContent className="p-0">
+          <CardSectionHeader icon={PieChart} title="Disposable Income" />
+          <h1 className="font-display text-5xl text-text-primary mb-4">
+            {currency(summary.disposable_income)}
+          </h1>
+          <div className="flex h-3 rounded-full overflow-hidden mb-3">
+            <div className="bg-negative" style={{ width: `${expensePct}%` }} />
+            <div className="bg-positive" style={{ width: `${investPct}%` }} />
+            <div className="bg-accent" style={{ width: `${disposablePct}%` }} />
+          </div>
+          <div className="flex gap-5 text-base text-text-muted">
+            <span><span className="text-negative">●</span> Expenses {expensePct.toFixed(0)}%</span>
+            <span><span className="text-positive">●</span> Investments {investPct.toFixed(0)}%</span>
+            <span><span className="text-accent">●</span> Disposable {disposablePct.toFixed(0)}%</span>
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card className="p-5">
+          <CardContent className="p-0">
+            <CardSectionHeader icon={Wallet} title="Income" />
+            <p className="font-display text-3xl text-text-primary">{currency(summary.total_income)}</p>
+            <p className="text-sm text-text-muted mt-2">Take-home, post-tax</p>
+          </CardContent>
+        </Card>
+        <Card className="p-5">
+          <CardContent className="p-0">
+            <CardSectionHeader icon={TrendingUp} title="Investments" />
+            <p className="font-display text-3xl text-positive">
+              {currency(summary.total_investments_pre_tax + summary.total_investments_post_tax)}
+            </p>
+            <p className="text-sm text-text-muted mt-2">Before income {currency(summary.total_investments_pre_tax)}</p>
+            <p className="text-sm text-text-muted">After income {currency(summary.total_investments_post_tax)}</p>
+            <p className="text-sm text-positive mt-2">
+              Savings rate {summary.savings_rate.toFixed(1)}% of effective income
+            </p>
+          </CardContent>
+        </Card>
+        <Card className="p-5">
+          <CardContent className="p-0">
+            <CardSectionHeader icon={CreditCard} title="Expenses" />
+            <p className="font-display text-3xl text-negative">{currency(summary.total_expenses)}</p>
+            <p className="text-sm text-text-muted mt-2">Monthly, annual amortized in</p>
+          </CardContent>
+        </Card>
       </div>
 
-      <div className="grid grid-cols-3 gap-6">
-        <div className="bg-card border border-border rounded-xl p-5">
-          <p className="text-text-muted text-sm uppercase tracking-wide mb-2">Income</p>
-          <p className="font-display text-2xl text-text-primary">{currency(summary.total_income)}</p>
-          <p className="text-xs text-text-muted mt-2">Take-home, post-tax</p>
-        </div>
-        <div className="bg-card border border-border rounded-xl p-5">
-          <p className="text-text-muted text-sm uppercase tracking-wide mb-2">Investments</p>
-          <p className="font-display text-2xl text-positive">
-            {currency(summary.total_investments_pre_tax + summary.total_investments_post_tax)}
-          </p>
-          <p className="text-xs text-text-muted mt-2">Before income {currency(summary.total_investments_pre_tax)}</p>
-          <p className="text-xs text-text-muted">After income {currency(summary.total_investments_post_tax)}</p>
-          <p className="text-xs text-positive mt-2">
-            Savings rate {summary.savings_rate.toFixed(1)}% of effective income
-          </p>
-        </div>
-        <div className="bg-card border border-border rounded-xl p-5">
-          <p className="text-text-muted text-sm uppercase tracking-wide mb-2">Expenses</p>
-          <p className="font-display text-2xl text-negative">{currency(summary.total_expenses)}</p>
-          <p className="text-xs text-text-muted mt-2">Monthly, annual amortized in</p>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-5 gap-6 items-start">
-        <div className="col-span-2 flex flex-col gap-6">
-          <ItemListCard title="Income" onSaved={refresh}>
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 items-start">
+        <div className="lg:col-span-2 flex flex-col gap-6">
+          <ItemListCard icon={Wallet} title="Income" onSaved={refresh} createLabel="Add Income">
             <div className="flex flex-col divide-y divide-border">
               {income.map((item) => (
                 <ItemRow key={item.id} item={item} onDelete={handleDelete} onSaved={refresh} />
               ))}
+              {income.length === 0 && <p className="text-text-muted text-base py-2">None yet.</p>}
             </div>
           </ItemListCard>
 
-          <ItemListCard title="Investments" onSaved={refresh}>
-            <p className="text-xs text-text-muted uppercase tracking-wide mb-2">Before income</p>
+          <ItemListCard icon={TrendingUp} title="Investments" onSaved={refresh} createLabel="Add Investment">
+            <p className="text-sm text-text-muted uppercase tracking-wide mb-2">Before income</p>
             <div className="flex flex-col divide-y divide-border mb-4">
               {investmentsPre.map((item) => (
                 <ItemRow key={item.id} item={item} onDelete={handleDelete} onSaved={refresh} />
               ))}
-              {investmentsPre.length === 0 && <p className="text-text-muted text-sm py-2">None yet.</p>}
+              {investmentsPre.length === 0 && <p className="text-text-muted text-base py-2">None yet.</p>}
             </div>
-            <p className="text-xs text-text-muted uppercase tracking-wide mb-2">After income</p>
+            <p className="text-sm text-text-muted uppercase tracking-wide mb-2">After income</p>
             <div className="flex flex-col divide-y divide-border">
               {investmentsPost.map((item) => (
                 <ItemRow key={item.id} item={item} onDelete={handleDelete} onSaved={refresh} />
               ))}
-              {investmentsPost.length === 0 && <p className="text-text-muted text-sm py-2">None yet.</p>}
+              {investmentsPost.length === 0 && <p className="text-text-muted text-base py-2">None yet.</p>}
             </div>
           </ItemListCard>
         </div>
 
-        <ItemListCard title="Expenses" onSaved={refresh} className="col-span-3">
+        <ItemListCard icon={CreditCard} title="Expenses" onSaved={refresh} createLabel="Add Expense" className="lg:col-span-3" scrollHeight="h-[520px]">
           {expenseGroups.map((group) => (
             <div key={group.name} className="mb-4">
               <div className="flex items-baseline justify-between mb-2">
-                <p className="text-text-primary text-sm font-medium">{group.name}</p>
-                <p className="text-sm text-negative">{currency(group.total)}</p>
+                <p className="text-text-primary text-base font-medium">{group.name}</p>
+                <p className="text-base text-negative">{currency(group.total)}</p>
               </div>
               <div className="flex flex-col divide-y divide-border">
                 {group.items.map((item) => (
-                  <ItemRow key={item.id} item={item} onDelete={handleDelete} onSaved={refresh} showFrequency />
+                  <ItemRow key={item.id} item={item} categoryName={group.name} onDelete={handleDelete} onSaved={refresh} />
                 ))}
               </div>
             </div>
           ))}
-          {expenseGroups.length === 0 && <p className="text-text-muted text-sm">None yet.</p>}
+          {expenseGroups.length === 0 && <p className="text-text-muted text-base">None yet.</p>}
         </ItemListCard>
-      </div>
-    </div>
-  )
-}
-
-function ItemListCard({
-  title,
-  children,
-  onSaved,
-  className,
-}: {
-  title: string
-  children: React.ReactNode
-  onSaved: () => void
-  className?: string
-}) {
-  return (
-    <div className={`bg-card border border-border rounded-xl p-5 ${className ?? ''}`}>
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-text-muted text-sm uppercase tracking-wide font-medium">{title}</h2>
-        <RecurringItemForm mode="create" onSaved={onSaved} />
-      </div>
-      <div className="max-h-[520px] overflow-y-auto">{children}</div>
-    </div>
-  )
-}
-
-function ItemRow({
-  item,
-  onDelete,
-  onSaved,
-  showFrequency,
-}: {
-  item: RecurringItem
-  onDelete: (id: number) => void
-  onSaved: () => void
-  showFrequency?: boolean
-}) {
-  return (
-    <div className="flex items-center justify-between py-2.5">
-      <div>
-        <p className="text-text-primary text-sm">{item.name}</p>
-        {showFrequency && <p className="text-xs text-text-muted capitalize">{item.frequency}</p>}
-      </div>
-      <div className="flex items-center gap-2">
-        <p className="text-text-primary text-sm font-medium">{currency(item.estimated_amount)}</p>
-        <RecurringItemForm mode="edit" item={item} onSaved={onSaved} />
-        <Button variant="ghost" size="icon" className="text-text-muted hover:text-negative" onClick={() => onDelete(item.id)}>
-          <Trash2 size={14} />
-        </Button>
       </div>
     </div>
   )
