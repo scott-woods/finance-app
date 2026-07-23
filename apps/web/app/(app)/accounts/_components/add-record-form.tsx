@@ -22,12 +22,14 @@ type AccountSnapshot = components['schemas']['AccountSnapshot']
 
 export function AddRecordForm({
   mode = 'create',
+  trigger = 'icon',
   accountId,
   accountName,
   snapshot,
   onSaved,
 }: {
   mode?: 'create' | 'edit'
+  trigger?: 'icon' | 'button'
   accountId: number
   accountName: string
   snapshot?: AccountSnapshot
@@ -39,9 +41,20 @@ export function AddRecordForm({
   const [asOfDate, setAsOfDate] = useState(
     snapshot ? snapshot.as_of_date.slice(0, 10) : new Date().toISOString().slice(0, 10)
   )
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+
+    if (mode === 'edit' && !snapshot) {
+      setError('Missing record to update.')
+      return
+    }
+
+    setSubmitting(true)
+    setError(null)
+
     const token = await getToken()
     const client = createApiClient(token)
     const body = {
@@ -49,16 +62,21 @@ export function AddRecordForm({
       as_of_date: new Date(asOfDate).toISOString(),
     }
 
-    if (mode === 'create') {
-      await client.POST('/accounts/{id}/snapshots', {
-        params: { path: { id: accountId } },
-        body,
-      })
-    } else if (snapshot) {
-      await client.PUT('/accounts/{id}/snapshots/{snapshotId}', {
-        params: { path: { id: accountId, snapshotId: snapshot.id } },
-        body,
-      })
+    const res = mode === 'create'
+      ? await client.POST('/accounts/{id}/snapshots', {
+          params: { path: { id: accountId } },
+          body,
+        })
+      : await client.PUT('/accounts/{id}/snapshots/{snapshotId}', {
+          params: { path: { id: accountId, snapshotId: snapshot!.id } },
+          body,
+        })
+
+    setSubmitting(false)
+
+    if (res.error) {
+      setError('Something went wrong saving this record. Please try again.')
+      return
     }
 
     setOpen(false)
@@ -67,13 +85,19 @@ export function AddRecordForm({
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger
-        render={
-          <Button variant="ghost" size="icon" className="text-text-muted hover:text-accent" />
-        }
-      >
-        {mode === 'create' ? <Plus size={16} /> : <Pencil size={14} />}
-      </SheetTrigger>
+      {trigger === 'icon' ? (
+        <SheetTrigger
+          render={
+            <Button variant="ghost" size="icon" className="text-text-muted hover:text-accent" />
+          }
+        >
+          {mode === 'create' ? <Plus size={16} /> : <Pencil size={14} />}
+        </SheetTrigger>
+      ) : (
+        <SheetTrigger render={<Button className="gap-1.5" />}>
+          <Plus size={16} /> Add Record
+        </SheetTrigger>
+      )}
       <SheetContent>
         <form onSubmit={handleSubmit} className="flex flex-col h-full">
           <SheetHeader>
@@ -103,9 +127,12 @@ export function AddRecordForm({
                 required
               />
             </div>
+            {error && <p className="text-sm text-negative">{error}</p>}
           </div>
           <SheetFooter>
-            <Button type="submit">Save</Button>
+            <Button type="submit" disabled={submitting}>
+              {submitting ? 'Saving...' : 'Save'}
+            </Button>
             <SheetClose render={<Button type="button" variant="outline" />}>Cancel</SheetClose>
           </SheetFooter>
         </form>

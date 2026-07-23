@@ -3,7 +3,7 @@
 import { useAuth } from '@clerk/nextjs'
 import { useEffect, useState } from 'react'
 import { createApiClient } from '@/lib/api'
-import { useCategories } from '@/lib/use-categories'
+import { useCategories } from '@/hooks/use-categories'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
